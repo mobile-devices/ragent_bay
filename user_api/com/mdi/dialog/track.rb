@@ -116,6 +116,7 @@ module UserApis
             end
 
             self.fields_data = []
+            dropped_fields = []
             payload.each do |k, v|
               field = apis.mdi.storage.tracking_fields_info.get_by_id(k, true)
               next if field == nil
@@ -125,7 +126,7 @@ module UserApis
               w_fields = io_rule['allowed_track_fields']
               RAGENT.api.mdi.tools.log.debug(w_fields)
               if w_fields != nil and !w_fields.include?('ALL_FIELDS') and !w_fields.include?(field['name'])
-                RAGENT.api.mdi.tools.log.warn("track init: dropping field #{field['name']}")
+                dropped_fields << "#{field['name']}"
                 next
               end
 
@@ -151,9 +152,8 @@ module UserApis
               #idea: metric for pos, speed
 
               self.fields_data << field
-            end
-
-
+            end # each element of payload
+            RAGENT.api.mdi.tools.log.warn("track init: dropping #{dropped_fields.size} fields:  [#{dropped_fields.join(' ')}]") if dropped_fields.size > 0 # print at once to avoid potential log spam
 
           end
 

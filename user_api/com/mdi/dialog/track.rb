@@ -317,8 +317,7 @@ module UserApis
           raise "field: you want to use field #{name} but It is not in your whitelist." if w_fields != nil and  !w_fields.include?('ALL_FIELDS') and !w_fields.include?(name)
 
           field = self.fields_data.select{|e| e['name'] == name }.first
-          RAGENT.api.mdi.tools.log.warn("field: Field #{field_name_or_id} not found") if field == nil
-
+          RAGENT.api.mdi.tools.log.warn("track.field: Field #{field_name_or_id} not found in current track") if field == nil
 
           if field == nil and also_fetch_in_last_known_if_available and self.meta['fields_cached'] != nil
             cache = self.meta['fields_cached']
@@ -326,11 +325,10 @@ module UserApis
             # map["#{field['name']}|recorded_at"] = field['recorded_at']
             # map["#{field['name']}|raw_value"] = field['raw_value']
             if cache["#{name}|recorded_at"] != nil
-
               field = user_api.mdi.storage.tracking_fields_info.get_by_name(name, true)
               if field != nil
-                field['raw_value'] = cache["#{name}|raw_value"]
-                field['value'] = cache["#{name}|raw_value"]
+                field['raw_value'] = Base64.strict_decode64(cache["#{name}|raw_value"])
+                field['value'] = field['raw_value']
                 field['fresh'] = false
                 field['recorded_at'] = cache["#{name}|recorded_at"]
 

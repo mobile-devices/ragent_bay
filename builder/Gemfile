@@ -7,6 +7,6 @@ gem 'json', '~> 1.8.0'
 gem 'whenever', '~> 0.8.2', :require => false
 
 
-gem 'minitest'
-gem 'tzinfo'
-gem 'activesupport'
+gem 'activesupport', '~> 4.1.2'
+gem 'minitest', '~> 5.3.5'
+gem 'tzinfo', '~> 1.2.1'

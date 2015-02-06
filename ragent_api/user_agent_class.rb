@@ -74,7 +74,7 @@ class UserAgentClass
   end
 
   def file_internal_config_io
-    @file_config ||= begin
+    @file_internal_config_io ||= begin
       config_file_path = "#{root_path}/config/internal/io.yml"
       if File.exist?(config_file_path)
         ret = YAML::load(File.open(config_file_path))

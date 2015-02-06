@@ -98,6 +98,7 @@ class UserAgentClass
   def user_config
     @file_config ||= begin
       config_file_path = "#{root_path}/config/agent.yml"
+      user_api.mdi.tools.log.info("Config content: #{File.read(config_file_path)}")
       if File.exist?(config_file_path)
         if RAGENT.running_env_name == 'ragent'
           ret = YAML::load(File.open(config_file_path))['mdi_cloud_env_config']

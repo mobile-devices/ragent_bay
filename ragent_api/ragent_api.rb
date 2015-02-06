@@ -125,6 +125,7 @@ module RagentApi
         user_agent_class = UserAgentClass.new(dir)
         RAGENT.api.mdi.tools.log.info("Creating agent from dir #{dir} '#{user_agent_class.agent_name}' with:\n . protogen=#{user_agent_class.is_agent_has_protogen}\n . root_path=\"#{user_agent_class.root_path}\"\n . dyn_channels=#{user_agent_class.managed_message_channels}")
         RAGENT.api.mdi.tools.log.info("io config = #{user_agent_class.file_internal_config_io}")
+        RAGENT.api.mdi.tools.log.info("user config = #{user_agent_class.user_config}")
 
         RAGENT.user_class_subscriber.subscribe(user_agent_class)
 

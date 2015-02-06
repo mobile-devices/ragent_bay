@@ -97,12 +97,12 @@ class UserAgentClass
 
   def user_config
     @file_config ||= begin
-      config_file_path = "#{root_path}/config/config.yml"
+      config_file_path = "#{root_path}/config/agent.yml"
       if File.exist?(config_file_path)
         if RAGENT.running_env_name == 'ragent'
-          ret = YAML::load(File.open(config_file_path))['production']
+          ret = YAML::load(File.open(config_file_path))['mdi_cloud_env_config']
         else
-          ret = YAML::load(File.open(config_file_path))['development']
+          ret = YAML::load(File.open(config_file_path))['ruby_sdk__env_config']
         end
       else
         user_api.mdi.tools.log.error("NO CONFIG FILE FOUND in #{root_path}/config")

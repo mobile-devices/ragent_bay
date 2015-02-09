@@ -8,7 +8,7 @@ $allow_non_protogen = true
 $allow_protogen_fault = true
 
 require 'active_support/all'
-
+require 'yaml'
 
 require_relative 'user_api/user_api_factory'
 require_relative 'ragent_api/ragent_api'

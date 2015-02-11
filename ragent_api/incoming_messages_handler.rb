@@ -376,8 +376,8 @@ module RagentIncomingMessage
       # No need to check route loop (i guess)
 
       PUNK.start('new')
-      RAGENT.api.mdi.tools.log.debug("#{user_agent_class.agent_name}: new incomming order:#{order.inspect}")
-      PUNK.end('new','ok','in',"AGENT:#{user_agent_class.agent_name}TNEGA <- ORDER [#{order.code}]")
+      RAGENT.api.mdi.tools.log.debug("#{assigned_agent.agent_name}: new incomming order:#{order.inspect}")
+      PUNK.end('new','ok','in',"AGENT:#{assigned_agent.agent_name}TNEGA <- ORDER [#{order.code}]")
 
       # process it, should never fail, but if its happen we will have a wrong error on parse fail but no deadlock
       assigned_agent.handle_order(order)

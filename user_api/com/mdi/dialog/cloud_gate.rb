@@ -142,7 +142,7 @@ module UserApis
                   "cookies" =>     message.cookies,
                   "class" => 'message',
                   'event_route' => message.meta['event_route'],
-                  'isMemberOfCollection' => self.meta['isMemberOfCollection']
+                  'isMemberOfCollection' => message.meta['isMemberOfCollection']
                   },
                   "payload" => {
                   "id" =>          out_id,     # Indigen integer

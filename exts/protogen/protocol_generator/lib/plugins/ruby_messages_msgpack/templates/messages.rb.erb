@@ -83,7 +83,7 @@ module Protogen_<%= protocol_set.config.get(:ruby, :agent_name) %>
                 raise TypeError.new("The attribute '<%= field.name %>' of a '<%= msg.name %>' must be an array of <%= field.type.name %> (an element in the given array was a '#{item.class.to_s}')") unless item.is_a?(<%= field.type.name %>) <% unless field.required %>|| new_value.nil?<% end %>
                end
                 <%- else -%>
-            raise TypeError.new("The attribute '<%= field.name %>' of a '<%= msg.name %>' must be a <%= field.type.name %> (got #{new_value.class.to_s})") unless new_value.is_a?(<%= field.type.name %>) <%\unless field.required %>|| new_value.nil?<% end %>
+            raise TypeError.new("The attribute '<%= field.name %>' of a '<%= msg.name %>' must be a <%= field.type.name %> (got #{new_value.class.to_s})") unless new_value.is_a?(<%= field.type.name %>) <%unless field.required %>|| new_value.nil?<% end %>
             @<%= field.name -%> = new_value
                 <%- end
               else

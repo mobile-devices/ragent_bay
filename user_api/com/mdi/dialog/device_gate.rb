@@ -40,6 +40,7 @@ module UserApis
                 'account' => account
                 },
               'payload' => {
+                'id' => CC.indigen_next_id(asset),
                 'type' => 'message',
                 'sender' => '@@server@@',
                 'recipient' => asset,

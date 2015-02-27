@@ -154,21 +154,22 @@ module RagentApi
           RAGENT.api.mdi.tools.log.info("  Agent '#{user_agent_class.agent_name}' subscribe to collections")
         end
 
-        # if user_agent_class.internal_config['subscribe_other']
-        #   if user_agent_class.internal_config['subscribe_other']['broadcast']
-        #     user_agent_class.internal_config['subscribe_other']['broadcast'].each do |queue|
-        #       queue_with_id = "#{queue}_#{RAGENT.runtime_id_code}"
-        #       RAGENT.user_class_other_subscribers(queue_with_id).subscribe(user_agent_class)
-        #       RAGENT.api.mdi.tools.log.info("  Agent '#{user_agent_class.agent_name}' subscribes to other queue (broadcast): #{queue_with_id}")
-        #     end
-        #   end
-        #   if user_agent_class.internal_config['subscribe_other']['shared']
-        #     user_agent_class.internal_config['subscribe_other']['shared'].each do |queue|
-        #       RAGENT.user_class_other_subscribers(queue).subscribe(user_agent_class)
-        #       RAGENT.api.mdi.tools.log.info("  Agent '#{user_agent_class.agent_name}' subscribes to other queue (shared): #{queue}")
-        #     end
-        #   end
-        # end
+        io_broadcast_rule = user_agent_class.internal_config_io_fetch_first('other_broadcast')
+        if io_broadcast_rule != nil
+          io_broadcast_rule['other_broadcast'].each do |queue|
+            queue_with_id = "#{queue}_#{RAGENT.runtime_id_code}"
+            RAGENT.user_class_other_subscribers(queue_with_id).subscribe(user_agent_class)
+            RAGENT.api.mdi.tools.log.info("  Agent '#{user_agent_class.agent_name}' subscribes to other queue (broadcast): #{queue_with_id}")
+          end
+        end
+
+        io_broadcast_rule = user_agent_class.internal_config_io_fetch_first('other_shared')
+        if user_agent_class.queue_subscribed?('other_shared')
+          io_broadcast_rule['other_shared'].each do |queue|
+            RAGENT.user_class_other_subscribers(queue).subscribe(user_agent_class)
+            RAGENT.api.mdi.tools.log.info("  Agent '#{user_agent_class.agent_name}' subscribes to other queue (shared): #{queue}")
+          end
+        end
 
         if user_agent_class.queue_subscribed?('poke')
           RAGENT.user_class_poke_subscriber.subscribe(user_agent_class)

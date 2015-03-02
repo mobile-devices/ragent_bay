@@ -154,7 +154,7 @@ module RagentApi
           RAGENT.api.mdi.tools.log.info("  Agent '#{user_agent_class.agent_name}' subscribe to collections")
         end
 
-        io_broadcast_rule = user_agent_class.internal_config_io_fetch_first('other_broadcast')
+        io_broadcast_rule = user_agent_class.internal_config_io_fetch_first('custom queues broadcasted')
         if io_broadcast_rule != nil
           io_broadcast_rule['other_broadcast'].each do |queue|
             queue_with_id = "#{queue}_#{RAGENT.runtime_id_code}"
@@ -163,8 +163,8 @@ module RagentApi
           end
         end
 
-        io_broadcast_rule = user_agent_class.internal_config_io_fetch_first('other_shared')
-        if user_agent_class.queue_subscribed?('other_shared')
+        io_broadcast_rule = user_agent_class.internal_config_io_fetch_first('custom queues shared')
+        if user_agent_class.queue_subscribed?('custom queues shared')
           io_broadcast_rule['other_shared'].each do |queue|
             RAGENT.user_class_other_subscribers(queue).subscribe(user_agent_class)
             RAGENT.api.mdi.tools.log.info("  Agent '#{user_agent_class.agent_name}' subscribes to other queue (shared): #{queue}")

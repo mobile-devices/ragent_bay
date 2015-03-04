@@ -68,7 +68,15 @@ module Protogen_<%= protocol_set.config.get(:ruby, :agent_name) %>
           def <%= field.name %>=(new_value)
             <%- case field.type
               when Models::BasicType
-                if field.type.name == "bool" -%>
+                if field.array? -%>
+
+                raise TypeError.new("The attribute '<%= field.name %>' of a '<%= msg.name %>' must be an array of <%= MSGPACK2RUBY[field.type.name] %> (the provided parameter does not respond to 'each')") unless new_value.respond_to?(:each) <% unless field.required %>|| new_value.nil?<% end %>
+
+                new_value.each do |item|
+                  raise TypeError.new("The attribute '<%= field.name %>' of a '<%= msg.name %>' must be an array of <%= MSGPACK2RUBY[field.type.name] %> (an element in the given array was a '#{item.class.to_s}')") unless item.is_a?(<%= MSGPACK2RUBY[field.type.name] %>) <% unless field.required %>|| new_value.nil?<% end %>
+                end
+
+                <% elsif field.type.name == "bool" %>
             raise TypeError.new("The attribute '<%= field.name %>' of a '<%= msg.name %>' must be a Boolean (got #{new_value.class.to_s})") unless new_value.is_a?(TrueClass) || new_value.is_a?(FalseClass) <% unless field.required %>|| new_value.nil?<% end %>
                 <% elsif field.type.name == "bytes"-%>
             raise TypeError.new("The attribute '<%= field.name %>' of a '<%= msg.name %>' must be a String (got #{new_value.class.to_s})") unless new_value.is_a?(String) <% unless field.required %>|| new_value.nil?<% end %>

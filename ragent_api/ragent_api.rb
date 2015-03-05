@@ -295,9 +295,12 @@ module RagentApi
   end
 
   def self.scheduled_tasks_start
+    crons = RAGENT.cron_tasks_to_map
     RAGENT.api.mdi.tools.log.info("RAGENT scheduled_tasks_start")
-    ret = Rufus.run
+    ret = Rufus.run(crons)
     RAGENT.api.mdi.tools.log.info("RAGENT scheduled_tasks_start done ret = #{ret}")
+    raise "cron start failed" if !ret
+    crons
   end
 
   def self.static_info

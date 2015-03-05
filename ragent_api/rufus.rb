@@ -13,7 +13,6 @@ module Rufus
   def self.run(crons)
     RAGENT.api.mdi.tools.log.info("Rufus run start")
     scheduler = Rufus::Scheduler.new
-    crons = RAGENT.cron_tasks_to_map
 
     crons.each do |k, v|
       p "Rufus init agent #{k}"

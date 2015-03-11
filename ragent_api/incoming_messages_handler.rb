@@ -269,7 +269,7 @@ module RagentIncomingMessage
     SDK_STATS.stats['server']['received'][2] += 1
 
     # forward to each agent
-    RAGENT.user_class_track_subscriber.get_subscribers.each do |user_agent_class|
+    (RAGENT.user_class_track_subscriber.get_subscribers + RAGENT.user_class_track_cached_subscriber.get_subscribers).each do |user_agent_class|
       io_rule = user_agent_class.internal_config_io_fetch_first('track')
       next if io_rule == nil
 

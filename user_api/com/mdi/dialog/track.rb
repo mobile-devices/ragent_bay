@@ -361,27 +361,6 @@ module UserApis
           self.fields_data = []
         end
 
-        # save all fields to mongo for last values features
-        # @api private
-        def save_fields_to_mongo
-          # note: not sure if this is the best method
-
-          # get last_value_of_track_fields collection
-          coll = user_api.mdi.storage.mongodb['last_value_of_track_fields']
-
-          self.fields_data.each do |field|
-            # search if exist
-            p_field = coll.find('asset' => field['asset'], 'name' => field['name']).first
-
-            # if not create it, else update it
-            if p_field == nil
-              coll.insert(field)
-            else
-              coll.update({ 'asset' => field['asset'], 'name' => field['name'] }, field) if field['recorded_at'] > p_field['recorded_at']
-            end
-          end
-        end
-
       end #Track
     end #Dialog
   end #Mdi

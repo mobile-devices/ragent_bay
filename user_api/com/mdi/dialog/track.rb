@@ -213,10 +213,12 @@ module UserApis
           #add  fresh field of new data (and convert it as magic string)
           a_field = false
           if self.fields_data.is_a? Array # in cas on nil or whatever
+            r_hash['payload']['fields'] = []
             self.fields_data.each do |field|
               if field['fresh'] and field['field'] > 4999 # can't inject field from 0 to 4999, device protected
                 CC.logger.debug("to_hash_to_send_to_cloud: Adding field '#{field['field']}' with val= #{field['value']}")
                 r_hash['payload']["#{field['field']}"] = "#{field['raw_value']}"
+                r_hash['payload']['fields'] << {'id' => "#{field['field']}", 'name' => "#{field['name']}", 'data' => "#{field['raw_value']}"}
                 a_field = true
                 r_hash['meta']['include_fresh_track_field'] = true
               else
@@ -272,6 +274,7 @@ module UserApis
             end
           end
 
+          field['name'] = name
           field['raw_value'] = raw_value
           field['value'] = value
           field['fresh'] = true

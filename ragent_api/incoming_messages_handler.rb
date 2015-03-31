@@ -9,7 +9,7 @@ module RagentIncomingMessage
   def self.valid_params(params)
     if params['meta'] == nil or params['payload'] == nil
       begin
-        raise "RagentIncomingMessage: bad incomming params structure: #{params}"
+        raise "RagentIncomingMessage: bad incoming params structure: #{params}"
       rescue Exception => e
         PUNK.start('valid')
         RAGENT.api.mdi.tools.print_ruby_exception(e)
@@ -39,7 +39,7 @@ module RagentIncomingMessage
     end
 
     PUNK.start('new')
-    RAGENT.api.mdi.tools.log.debug("\n\n\n\nServer: new incomming presence:\n#{params}")
+    RAGENT.api.mdi.tools.log.debug("\n\n\n\nServer: new incoming presence:\n#{params}")
     PUNK.end('new','ok','in',"SERVER <- PRESENCE : receive new presence")
     SDK_STATS.stats['server']['received'][0] += 1
 
@@ -80,7 +80,7 @@ module RagentIncomingMessage
         end
 
         PUNK.start('new')
-        RAGENT.api.mdi.tools.log.debug("#{user_agent_class.agent_name}: new incomming presence:\n#{presence.inspect}")
+        RAGENT.api.mdi.tools.log.debug("#{user_agent_class.agent_name}: new incoming presence:\n#{presence.inspect}")
         PUNK.end('new','ok','in',"AGENT:#{user_agent_class.agent_name}TNEGA <- PRESENCE [#{presence.type}]")
 
 
@@ -119,7 +119,7 @@ module RagentIncomingMessage
     return unless RAGENT.supported_message_channels.include? channel || RAGENT.supported_message_channels.include?('ALL_CHANNELS')
 
     PUNK.start('new')
-    RAGENT.api.mdi.tools.log.debug("\n\n\n\nServer: new incomming message:\n#{params}")
+    RAGENT.api.mdi.tools.log.debug("\n\n\n\nServer: new incoming message:\n#{params}")
     SDK_STATS.stats['server']['received'][1] += 1
 
     # vm-mode jBinaryGate: ack the message
@@ -227,7 +227,7 @@ module RagentIncomingMessage
           end
 
           PUNK.start('new')
-          RAGENT.api.mdi.tools.log.debug("#{user_agent_class.agent_name}: new incomming message:\n#{ragent_msg.inspect}")
+          RAGENT.api.mdi.tools.log.debug("#{user_agent_class.agent_name}: new incoming message:\n#{ragent_msg.inspect}")
           PUNK.end('new','ok','in',"AGENT:#{user_agent_class.agent_name}TNEGA <- MESSAGE [#{ragent_msg.channel}]")
 
           # process it, should never fail, but if its happen we will have a wrong error on parse fail but no deadlock
@@ -264,7 +264,7 @@ module RagentIncomingMessage
     end
 
     PUNK.start('new')
-    RAGENT.api.mdi.tools.log.debug("\n\n\n\nServer: new incomming track:\n#{params}")
+    RAGENT.api.mdi.tools.log.debug("\n\n\n\nServer: new incoming track:\n#{params}")
     PUNK.end('new', 'ok', 'in', "SERVER <- TRACK : receive new track")
     SDK_STATS.stats['server']['received'][2] += 1
 
@@ -315,7 +315,7 @@ module RagentIncomingMessage
         PUNK.start('new')
         # injected cache (vm mode)
         track = TrackCache.inject_cache(track) if RAGENT.running_env_name == 'sdk-vm' and io_rule['track_fields_cached'] != nil and io_rule['track_fields_cached'] == true
-        RAGENT.api.mdi.tools.log.debug("#{user_agent_class.agent_name}: new incomming track:\n#{track.inspect}")
+        RAGENT.api.mdi.tools.log.debug("#{user_agent_class.agent_name}: new incoming track:\n#{track.inspect}")
         str_field_cached = " (#{track.meta['fields_cached'].size / 2})" if track.meta['fields_cached'].is_a? Hash
         PUNK.end('new','ok','in',"AGENT:#{user_agent_class.agent_name}TNEGA <- TRACK [#{track.fields_data.size} fields#{str_field_cached}]")
 
@@ -354,7 +354,7 @@ module RagentIncomingMessage
     end
 
     PUNK.start('new')
-    RAGENT.api.mdi.tools.log.debug("\n\n\n\nServer: new incomming order:\n#{params}")
+    RAGENT.api.mdi.tools.log.debug("\n\n\n\nServer: new incoming order:\n#{params}")
     SDK_STATS.stats['server']['received'][3] += 1
     PUNK.end('new','ok','in',"SERVER <- ORDER for agent '#{assigned_agent.agent_name}'")
 
@@ -376,7 +376,7 @@ module RagentIncomingMessage
       # No need to check route loop (i guess)
 
       PUNK.start('new')
-      RAGENT.api.mdi.tools.log.debug("#{assigned_agent.agent_name}: new incomming order:#{order.inspect}")
+      RAGENT.api.mdi.tools.log.debug("#{assigned_agent.agent_name}: new incoming order:#{order.inspect}")
       PUNK.end('new','ok','in',"AGENT:#{assigned_agent.agent_name}TNEGA <- ORDER [#{order.code}]")
 
       # process it, should never fail, but if its happen we will have a wrong error on parse fail but no deadlock
@@ -414,7 +414,7 @@ module RagentIncomingMessage
     end
 
     PUNK.start('new')
-    RAGENT.api.mdi.tools.log.debug("\n\n\n\nServer: new incomming collection:\n#{params}")
+    RAGENT.api.mdi.tools.log.debug("\n\n\n\nServer: new incoming collection:\n#{params}")
     PUNK.end('new','ok','in',"SERVER <- COLLECTION : receive new collection")
     SDK_STATS.stats['server']['received'][4] += 1
 
@@ -456,7 +456,7 @@ module RagentIncomingMessage
         end
 
         PUNK.start('new')
-        RAGENT.api.mdi.tools.log.debug("#{user_agent_class.agent_name}: new incomming collection:\n#{collection.inspect}")
+        RAGENT.api.mdi.tools.log.debug("#{user_agent_class.agent_name}: new incoming collection:\n#{collection.inspect}")
         PUNK.end('new','ok','in',"AGENT:#{user_agent_class.agent_name}TNEGA <- COLLECTION [#{collection.name}]")
 
         # process it, should never fail, but if its happen we will have a wrong error on parse fail but no deadlock
@@ -487,7 +487,7 @@ module RagentIncomingMessage
     end
 
     PUNK.start('new')
-    RAGENT.api.mdi.tools.log.debug("\n\n\n\nServer: new incomming poke:\n#{params}")
+    RAGENT.api.mdi.tools.log.debug("\n\n\n\nServer: new incoming poke:\n#{params}")
     PUNK.end('new','ok','in',"SERVER <- POKE : receive new poke")
     SDK_STATS.stats['server']['received'][6] += 1
 
@@ -524,7 +524,7 @@ module RagentIncomingMessage
 
 
         PUNK.start('new')
-        RAGENT.api.mdi.tools.log.debug("#{user_agent_class.agent_name}: new incomming poke:\n#{poke.inspect}")
+        RAGENT.api.mdi.tools.log.debug("#{user_agent_class.agent_name}: new incoming poke:\n#{poke.inspect}")
         PUNK.end('new','ok','in',"AGENT:#{user_agent_class.agent_name}TNEGA <- POKE")
 
         # process it, should never fail, but if its happen we will have a wrong error on parse fail but no deadlock

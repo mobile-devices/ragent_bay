@@ -204,8 +204,12 @@ module UserApis
             #add field of new data (and convert it as magic string)
             self.fields_data.each do |field|
               CC.logger.debug("to_hash: Adding field '#{field['field']}' with val= #{field['value']}")
+
+              # [DEPRECATED] Old track format
               r_hash['payload'][field['field'].to_s] = "#{field['raw_value']}"
-            end
+              # New track format
+              r_hash['payload']['fields'] << {'id' => field['field'], 'name' => "#{field['name']}", 'data' => "#{field['raw_value']}"}
+          end
           end
 
           r_hash['meta'].delete_if { |k, v| v.nil? }

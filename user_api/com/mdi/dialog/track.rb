@@ -117,7 +117,23 @@ module UserApis
 
             self.fields_data = []
             dropped_fields = []
-            payload.each do |k, v|
+
+            unless payload['fields']
+              payload['fields'] = []
+              payload.each do |k, v|
+                field = apis.mdi.storage.tracking_fields_info.get_by_id(k, true)
+                next if field == nil
+                payload['fields'] << {
+                  'id' => k,
+                  'name' => field['name'],
+                  'data' => v
+                }
+              end
+            end
+
+            payload['fields'].each do |track_field|
+              k = track_field['id']
+              v = track_field['data']
               field = apis.mdi.storage.tracking_fields_info.get_by_id(k, true)
               next if field == nil
               RAGENT.api.mdi.tools.log.debug("init track with track gives #{k} #{v} #{field}")

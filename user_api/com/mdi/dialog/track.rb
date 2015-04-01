@@ -124,7 +124,7 @@ module UserApis
                 field = apis.mdi.storage.tracking_fields_info.get_by_id(k, true)
                 next if field == nil
                 payload['fields'] << {
-                  'id' => k,
+                  'id' => k.to_i,
                   'name' => field['name'],
                   'data' => v
                 }
@@ -234,7 +234,7 @@ module UserApis
               if field['fresh'] and field['field'] > 4999 # can't inject field from 0 to 4999, device protected
                 CC.logger.debug("to_hash_to_send_to_cloud: Adding field '#{field['field']}' with val= #{field['value']}")
                 r_hash['payload']["#{field['field']}"] = "#{field['raw_value']}"
-                r_hash['payload']['fields'] << {'id' => "#{field['field']}", 'name' => "#{field['name']}", 'data' => "#{field['raw_value']}"}
+                r_hash['payload']['fields'] << {'id' => field['field'], 'name' => "#{field['name']}", 'data' => "#{field['raw_value']}"}
                 a_field = true
                 r_hash['meta']['include_fresh_track_field'] = true
               else

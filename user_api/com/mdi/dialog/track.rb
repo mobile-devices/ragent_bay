@@ -118,6 +118,13 @@ module UserApis
             self.fields_data = []
             dropped_fields = []
 
+            # Old format of tracks:
+            #   {..., "9" => "AABvvA==", "8" => "AAAj2g=="}
+            # New format of tracks:
+            #   {..., "fields" => [{"id" => 9, "name" => "GPS_DIR",   "data" => "AABvvA=="},
+            #                      {"id" => 8, "name" => "GPS_SPEED", "data" => "AAAj2g=="}]}
+            # For now we reformat tracks with the old version into the new version
+            #   before treating them.
             unless payload['fields']
               payload['fields'] = []
               payload.each do |k, v|
@@ -233,8 +240,12 @@ module UserApis
             self.fields_data.each do |field|
               if field['fresh'] and field['field'] > 4999 # can't inject field from 0 to 4999, device protected
                 CC.logger.debug("to_hash_to_send_to_cloud: Adding field '#{field['field']}' with val= #{field['value']}")
+
+                # [DEPRECATED] Old track format
                 r_hash['payload']["#{field['field']}"] = "#{field['raw_value']}"
+                # New track format
                 r_hash['payload']['fields'] << {'id' => field['field'], 'name' => "#{field['name']}", 'data' => "#{field['raw_value']}"}
+
                 a_field = true
                 r_hash['meta']['include_fresh_track_field'] = true
               else

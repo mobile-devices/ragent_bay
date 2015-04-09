@@ -117,7 +117,30 @@ module UserApis
 
             self.fields_data = []
             dropped_fields = []
-            payload.each do |k, v|
+
+            # Old format of tracks:
+            #   {..., "9" => "AABvvA==", "8" => "AAAj2g=="}
+            # New format of tracks:
+            #   {..., "fields" => [{"id" => 9, "name" => "GPS_DIR",   "data" => "AABvvA=="},
+            #                      {"id" => 8, "name" => "GPS_SPEED", "data" => "AAAj2g=="}]}
+            # For now we reformat tracks with the old version into the new version
+            #   before treating them.
+            unless payload['fields']
+              payload['fields'] = []
+              payload.each do |k, v|
+                field = apis.mdi.storage.tracking_fields_info.get_by_id(k, true)
+                next if field == nil
+                payload['fields'] << {
+                  'id' => k.to_i,
+                  'name' => field['name'],
+                  'data' => v
+                }
+              end
+            end
+
+            payload['fields'].each do |track_field|
+              k = track_field['id']
+              v = track_field['data']
               field = apis.mdi.storage.tracking_fields_info.get_by_id(k, true)
               next if field == nil
               RAGENT.api.mdi.tools.log.debug("init track with track gives #{k} #{v} #{field}")
@@ -181,8 +204,12 @@ module UserApis
             #add field of new data (and convert it as magic string)
             self.fields_data.each do |field|
               CC.logger.debug("to_hash: Adding field '#{field['field']}' with val= #{field['value']}")
+
+              # [DEPRECATED] Old track format
               r_hash['payload'][field['field'].to_s] = "#{field['raw_value']}"
-            end
+              # New track format
+              r_hash['payload']['fields'] << {'id' => field['field'], 'name' => "#{field['name']}", 'data' => "#{field['raw_value']}"}
+          end
           end
 
           r_hash['meta'].delete_if { |k, v| v.nil? }
@@ -213,10 +240,16 @@ module UserApis
           #add  fresh field of new data (and convert it as magic string)
           a_field = false
           if self.fields_data.is_a? Array # in cas on nil or whatever
+            r_hash['payload']['fields'] = []
             self.fields_data.each do |field|
               if field['fresh'] and field['field'] > 4999 # can't inject field from 0 to 4999, device protected
                 CC.logger.debug("to_hash_to_send_to_cloud: Adding field '#{field['field']}' with val= #{field['value']}")
+
+                # [DEPRECATED] Old track format
                 r_hash['payload']["#{field['field']}"] = "#{field['raw_value']}"
+                # New track format
+                r_hash['payload']['fields'] << {'id' => field['field'], 'name' => "#{field['name']}", 'data' => "#{field['raw_value']}"}
+
                 a_field = true
                 r_hash['meta']['include_fresh_track_field'] = true
               else
@@ -272,6 +305,7 @@ module UserApis
             end
           end
 
+          field['name'] = name
           field['raw_value'] = raw_value
           field['value'] = value
           field['fresh'] = true

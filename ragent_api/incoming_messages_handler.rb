@@ -202,52 +202,49 @@ module RagentIncomingMessage
       io_rule = user_agent_class.internal_config_io_fetch_first('message')
       next if io_rule == nil
       next unless io_rule['allowed_accounts'].include? account
+      next unless io_rule['allowed_message_channels'].include? channel || io_rule['allowed_message_channels'].include?('ALL_CHANNELS')
+
+      begin
+        PUNK.start('damned')
+        env = {
+          'account' => account,
+          'agent_name' => user_agent_class.agent_name
+        }
+
+        # set associated api as current sdk_api
+        apis = USER_API_FACTORY.gen_user_api(user_agent_class, env)
+        apis.initial_event_content = ragent_msg.clone
+        set_current_user_api(apis)
 
 
-      if io_rule['allowed_message_channels'].include? channel || io_rule['allowed_message_channels'].include?('ALL_CHANNELS')
-
-        begin
-          PUNK.start('damned')
-          env = {
-            'account' => account,
-            'agent_name' => user_agent_class.agent_name
-          }
-
-          # set associated api as current sdk_api
-          apis = USER_API_FACTORY.gen_user_api(user_agent_class, env)
-          apis.initial_event_content = ragent_msg.clone
-          set_current_user_api(apis)
-
-
-          # check route loop
-          looped = ragent_msg.meta['event_route'].select {|route| route["name"] == user_agent_class.agent_name }.first
-          if looped != nil
-            PUNK.start('loopdrop')
-            RAGENT.api.mdi.tools.log.warn("Loop detected. Dropping incoming message #{ragent_msg.id}")
-            PUNK.end('loopdrop','warn','notif',"Loop detected. AGENT:#{user_agent_class.agent_name}TNEGA drop incoming message #{message.id}")
-            next
-          end
-
-          PUNK.start('new')
-          RAGENT.api.mdi.tools.log.debug("#{user_agent_class.agent_name}: new incoming message:\n#{ragent_msg.inspect}")
-          PUNK.end('new','ok','in',"AGENT:#{user_agent_class.agent_name}TNEGA <- MESSAGE [#{ragent_msg.channel}]")
-
-          # process it, should never fail, but if its happen we will have a wrong error on parse fail but no deadlock
-          user_agent_class.handle_message(ragent_msg)
-
-        rescue Exception => e
-          RAGENT.api.mdi.tools.print_ruby_exception(e)
-          RAGENT.api.mdi.tools.log.info("Ragent error init api env :\n#{env}")
-          RUBY_AGENT_STATS.report_an_error("ragent message init env", "#{e}")
-          SDK_STATS.stats['server']['err_parse'][1] += 1
-          SDK_STATS.stats['server']['internal_error'] += 1
-          PUNK.end('damned','ko','in',"SERVER <- MESSAGE : bad init apis set_current_user_api")
-        ensure
-          PUNK.drop('damned')
-          release_current_user_api
+        # check route loop
+        looped = ragent_msg.meta['event_route'].select {|route| route["name"] == user_agent_class.agent_name }.first
+        if looped != nil
+          PUNK.start('loopdrop')
+          RAGENT.api.mdi.tools.log.warn("Loop detected. Dropping incoming message #{ragent_msg.id}")
+          PUNK.end('loopdrop','warn','notif',"Loop detected. AGENT:#{user_agent_class.agent_name}TNEGA drop incoming message #{message.id}")
+          next
         end
 
+        PUNK.start('new')
+        RAGENT.api.mdi.tools.log.debug("#{user_agent_class.agent_name}: new incoming message:\n#{ragent_msg.inspect}")
+        PUNK.end('new','ok','in',"AGENT:#{user_agent_class.agent_name}TNEGA <- MESSAGE [#{ragent_msg.channel}]")
+
+        # process it, should never fail, but if its happen we will have a wrong error on parse fail but no deadlock
+        user_agent_class.handle_message(ragent_msg)
+
+      rescue Exception => e
+        RAGENT.api.mdi.tools.print_ruby_exception(e)
+        RAGENT.api.mdi.tools.log.info("Ragent error init api env :\n#{env}")
+        RUBY_AGENT_STATS.report_an_error("ragent message init env", "#{e}")
+        SDK_STATS.stats['server']['err_parse'][1] += 1
+        SDK_STATS.stats['server']['internal_error'] += 1
+        PUNK.end('damned','ko','in',"SERVER <- MESSAGE : bad init apis set_current_user_api")
+      ensure
+        PUNK.drop('damned')
+        release_current_user_api
       end
+
     end # each user_agent_class
 
 

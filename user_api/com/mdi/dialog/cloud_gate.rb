@@ -59,7 +59,7 @@ module UserApis
 
             raise "Presence id #{presence.id} has already been sent into the cloud. Dropping injection."  if presence.id != nil
 
-            io_rule = user_agent_class.internal_config_io_fetch_first('presence')
+            io_rule = user_api.user_class.internal_config_io_fetch_first('presence')
             raise "Can't inject presence, you didn't have a whitelist filter for presences" if io_rule == nil
 
 
@@ -131,7 +131,7 @@ module UserApis
 
             raise "Message id #{msg.id} has already been sent into the cloud. Dropping injection."  if msg.id != nil
 
-            io_rule = user_agent_class.internal_config_io_fetch_first('message')
+            io_rule = user_api.user_class.internal_config_io_fetch_first('message')
             raise "Can't inject presence, you didn't have a whitelist filter for messages" if io_rule == nil
 
             out_id = 00000

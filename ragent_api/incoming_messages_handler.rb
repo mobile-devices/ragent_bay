@@ -49,7 +49,7 @@ module RagentIncomingMessage
     RAGENT.user_class_presence_subscriber.get_subscribers.each do |user_agent_class|
       io_rule = user_agent_class.internal_config_io_fetch_first('presence')
       next if io_rule == nil
-      next unless io_rule['allowed_accounts'].include? account
+      next unless io_rule['allowed_accounts'].include? account || io_rule['allowed_accounts'].include?('ALL_ACCOUNTS')
 
       begin
         PUNK.start('damned')
@@ -201,7 +201,7 @@ module RagentIncomingMessage
     RAGENT.user_class_message_subscriber.get_subscribers.each do |user_agent_class|
       io_rule = user_agent_class.internal_config_io_fetch_first('message')
       next if io_rule == nil
-      next unless io_rule['allowed_accounts'].include? account
+      next unless io_rule['allowed_accounts'].include? account || io_rule['allowed_accounts'].include?('ALL_ACCOUNTS')
       next unless io_rule['allowed_message_channels'].include? channel || io_rule['allowed_message_channels'].include?('ALL_CHANNELS')
 
       begin
@@ -271,7 +271,7 @@ module RagentIncomingMessage
     (RAGENT.user_class_track_subscriber.get_subscribers + RAGENT.user_class_track_cached_subscriber.get_subscribers).each do |user_agent_class|
       io_rule = user_agent_class.internal_config_io_fetch_first('track')
       next if io_rule == nil
-      next unless io_rule['allowed_accounts'].include? account
+      next unless io_rule['allowed_accounts'].include? account || io_rule['allowed_accounts'].include?('ALL_ACCOUNTS')
 
       begin
         PUNK.start('damned')
@@ -423,7 +423,7 @@ module RagentIncomingMessage
     RAGENT.user_class_collection_subscriber.get_subscribers.each do |user_agent_class|
       io_rule = user_agent_class.internal_config_io_fetch_first('collection')
       next if io_rule == nil
-      next unless io_rule['allowed_accounts'].include? account
+      next unless io_rule['allowed_accounts'].include? account || io_rule['allowed_accounts'].include?('ALL_ACCOUNTS')
       next unless ((io_rule['allowed_collection_definition_names'].include? name) or (io_rule['allowed_collection_definition_names'].include?('ALL_COLLECTIONS')))
 
       begin

@@ -214,7 +214,7 @@ module UserApis
           end
 
           r_hash['meta'].delete_if { |k, v| v.nil? }
-          r_hash['payload'].delete_if { |k, v| v.nil? }
+          r_hash['payload'].delete_if { |k, v| v.nil? and k != 'latitude' and k != 'longitude'}
           r_hash
         end
 

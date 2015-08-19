@@ -298,13 +298,14 @@ module UserApis
             poke.meta['event_route'] = gen_event_route_with_self
 
             # todo: put some limitation
-            CC.push(poke.to_hash_to_send_to_cloud,'pokes')
+            sent = poke.to_hash_to_send_to_cloud
+            CC.push(sent,'pokes')
 
             # success !
             PUNK.end('injectpoke','ok','out',"SERVER <- SERVER POKE")
 
             SDK_STATS.stats['agents'][user_api.user_class.agent_name]['inject_to_cloud'] += 1
-            return true
+            return sent['payload']['id']
           rescue Exception => e
             user_api.mdi.tools.log.error("Error on inject poke")
             user_api.mdi.tools.print_ruby_exception(e)

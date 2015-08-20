@@ -99,7 +99,7 @@ module UserApis
             PUNK.end('injectpresence','ok','out',"SERVER <- SERVER PRESENCE")
 
             SDK_STATS.stats['agents'][user_api.user_class.agent_name]['inject_to_cloud'] += 1
-            return sent['payload']['id']
+            return out_id
           rescue Exception => e
             user_api.mdi.tools.log.error("Error on inject presence")
             user_api.mdi.tools.print_ruby_exception(e)
@@ -179,7 +179,7 @@ module UserApis
 
             SDK_STATS.stats['agents'][user_api.user_class.agent_name]['inject_to_cloud'] += 1
             SDK_STATS.stats['agents'][user_api.user_class.agent_name]['total_sent'] += 1
-            return sent['payload']['id']
+            return out_id
           rescue Exception => e
             user_api.mdi.tools.log.error("Error on inject message")
             user_api.mdi.tools.print_ruby_exception(e)

@@ -99,7 +99,7 @@ module UserApis
             PUNK.end('injectpresence','ok','out',"SERVER <- SERVER PRESENCE")
 
             SDK_STATS.stats['agents'][user_api.user_class.agent_name]['inject_to_cloud'] += 1
-            return true
+            return sent['payload']['id']
           rescue Exception => e
             user_api.mdi.tools.log.error("Error on inject presence")
             user_api.mdi.tools.print_ruby_exception(e)
@@ -179,7 +179,7 @@ module UserApis
 
             SDK_STATS.stats['agents'][user_api.user_class.agent_name]['inject_to_cloud'] += 1
             SDK_STATS.stats['agents'][user_api.user_class.agent_name]['total_sent'] += 1
-            return true
+            return sent['payload']['id']
           rescue Exception => e
             user_api.mdi.tools.log.error("Error on inject message")
             user_api.mdi.tools.print_ruby_exception(e)
@@ -222,7 +222,7 @@ module UserApis
             PUNK.end('injecttrack','ok','out',"SERVER <- SERVER TRACK")
 
             SDK_STATS.stats['agents'][user_api.user_class.agent_name]['inject_to_cloud'] += 1
-            return true
+            return sent['payload']['id']
           rescue Exception => e
             user_api.mdi.tools.log.error("Error on inject track")
             user_api.mdi.tools.print_ruby_exception(e)
@@ -249,18 +249,20 @@ module UserApis
             collection.meta['event_route'] = gen_event_route_with_self
 
             # now push all elements of the collection
-            collection.data.each do |el|
+            collection.data.map! do |el|
               if el.id == nil
                 el.meta['isMemberOfCollection'] = true
                 CC.logger.info("Injection #{el.class} of collection")
                 case "#{el.class}"
                 when "UserApis::Mdi::Dialog::PresenceClass"
-                  user_api.mdi.dialog.cloud_gate.inject_presence(el)
+                  cloud_id = user_api.mdi.dialog.cloud_gate.inject_presence(el)
                 when "UserApis::Mdi::Dialog::MessageClass"
-                  user_api.mdi.dialog.cloud_gate.inject_message(el, el.channel) # channel is good ? no idea !
+                  cloud_id = user_api.mdi.dialog.cloud_gate.inject_message(el, el.channel) # channel is good ? no idea !
                 when "UserApis::Mdi::Dialog::TrackClass"
-                  user_api.mdi.dialog.cloud_gate.inject_track(el)
+                  cloud_id = user_api.mdi.dialog.cloud_gate.inject_track(el)
                 end
+                el.id = cloud_id if cloud_id
+                el
               end
             end
 
@@ -296,13 +298,14 @@ module UserApis
             poke.meta['event_route'] = gen_event_route_with_self
 
             # todo: put some limitation
-            CC.push(poke.to_hash_to_send_to_cloud,'pokes')
+            sent = poke.to_hash_to_send_to_cloud
+            CC.push(sent,'pokes')
 
             # success !
             PUNK.end('injectpoke','ok','out',"SERVER <- SERVER POKE")
 
             SDK_STATS.stats['agents'][user_api.user_class.agent_name]['inject_to_cloud'] += 1
-            return true
+            return sent['payload']['id']
           rescue Exception => e
             user_api.mdi.tools.log.error("Error on inject poke")
             user_api.mdi.tools.print_ruby_exception(e)

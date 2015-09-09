@@ -262,8 +262,8 @@ module UserApis
                   cloud_id = user_api.mdi.dialog.cloud_gate.inject_track(el)
                 end
                 el.id = cloud_id if cloud_id
-                el
               end
+              el
             end
 
             # todo: put some limitation

@@ -18,10 +18,10 @@ module RagentApi
       end
     end
 
-    def self.alter_definition(id, account, val)
+    def self.alter_definition(name, account, val)
       return if @mapping_collection_definitions_number == nil
       return if @mapping_collection_definitions_number[account] == nil # no need to update absent account
-      definition = RagentApi::CollectionDefinitionMapping.get_by_id(id, account, true)
+      definition = RagentApi::CollectionDefinitionMapping.get_by_name(name, account, true)
       @mapping_collection_definitions_number[account].delete(definition)
       if val != nil
         @mapping_collection_definitions_number[account] << val
@@ -67,17 +67,17 @@ module RagentApi
       return self.fetch_map(account)
     end
 
-    def self.get_by_id(str_id, account, no_error = false)
+    def self.get_by_name(str_name, account, no_error = false)
       if RAGENT.running_env_name == 'sdk-vm'
         account = 'default'
       end
       fetch_map(account).each do |definition|
-        if "#{definition['_id']}" == "#{str_id}"
+        if "#{definition['name']}" == "#{str_name}"
           return definition.clone
         end
       end
       if !no_error
-        raise "Collection definition '#{str_id}' not found for account '#{account}'."
+        raise "Collection definition '#{str_name}' not found for account '#{account}'."
       end
     end
 

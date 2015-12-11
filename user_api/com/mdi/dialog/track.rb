@@ -176,7 +176,7 @@ module UserApis
 
               self.fields_data << field
             end # each element of payload
-            RAGENT.api.mdi.tools.log.warn("track init: dropping #{dropped_fields.size} fields:  [#{dropped_fields.join(' ')}]") if dropped_fields.size > 0 # print at once to avoid potential log spam
+            RAGENT.api.mdi.tools.log.debug("track init: dropping #{dropped_fields.size} fields:  [#{dropped_fields.join(' ')}]") if dropped_fields.size > 0 # print at once to avoid potential log spam
 
           end
 

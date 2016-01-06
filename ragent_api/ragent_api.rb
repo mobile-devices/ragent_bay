@@ -65,6 +65,10 @@ module RagentApi
     @user_class_collection_subscriber ||= self.api.mdi.tools.create_new_subscriber
   end
 
+  def self.user_class_asset_config_subscriber
+    @user_class_asset_config_subscriber ||= self.api.mdi.tools.create_new_subscriber
+  end
+
 
   # A subscriber for an arbitrary queue.
   # @param [String] queue the queue name.
@@ -152,6 +156,12 @@ module RagentApi
         if user_agent_class.queue_subscribed?('collection')
           RAGENT.user_class_collection_subscriber.subscribe(user_agent_class)
           RAGENT.api.mdi.tools.log.info("  Agent '#{user_agent_class.agent_name}' subscribe to collections")
+        end
+
+
+        if user_agent_class.queue_subscribed?('assets config')
+          RAGENT.user_class_asset_config_subscriber.subscribe(user_agent_class)
+          RAGENT.api.mdi.tools.log.info("  Agent '#{user_agent_class.agent_name}' subscribe to asset configs")
         end
 
         io_broadcast_rule = user_agent_class.internal_config_io_fetch_first('custom queues broadcasted')

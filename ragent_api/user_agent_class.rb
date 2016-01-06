@@ -344,6 +344,38 @@ class UserAgentClass
 
   end # handle_collection
 
+
+
+  def handle_asset_config(asset_config)
+    delta_t = 0
+    start_t = Time.now
+    PUNK.start('assetConfigAgent')
+    begin
+      SDK_STATS.stats['agents'][agent_name]['received'][6] += 1
+      SDK_STATS.stats['agents'][agent_name]['total_received'] += 1
+      new_asset_config(asset_config)
+      delta_t = Time.now - start_t
+      RUBY_AGENT_STATS.report_a_last_activity("asset_config_#{agent_name}_#{asset_config.asset}", "asset_config{asset_config.asset}")
+      PUNK.end('assetConfigAgent','ok','process',"AGENT:#{agent_name}TNEGA callback ASSET CONFIG with asset_config '#{asset_config.asset}' in #{(delta_t * 1000).round}ms")
+    rescue Exception => e
+      delta_t = Time.now - start_t
+      RAGENT.api.mdi.tools.print_ruby_exception(e)
+      RAGENT.api.mdi.tools.log.info("Agent '#{agent_name}' asset_config event that brought to this crash :\n#{order.inspect}")
+      SDK_STATS.stats['agents'][agent_name]['err_while_process'][6] += 1
+      SDK_STATS.stats['agents'][agent_name]['total_error'] += 1
+      RUBY_AGENT_STATS.report_an_error("asset_config_#{agent_name}", "#{e}")
+      PUNK.end('assetConfigAgent','ko','process',"AGENT:#{agent_name}TNEGA callback ASSET CONFIG fail in #{(delta_t * 1000).round}ms")
+    end
+
+    if delta_t > 10.0
+      PUNK.start('assetConfigAgent')
+      PUNK.end('assetConfigAgent','ko','process',"AGENT:#{agent_name}TNEGA callback ASSET CONFIG take too much time")
+    end
+
+    RUBY_AGENT_STATS.report_new_response_time("asset_config|#{agent_name}", delta_t)
+
+  end # handle_order
+
   def handle_other_queue(params, queue)
     delta_t = 0
     start_t = Time.now

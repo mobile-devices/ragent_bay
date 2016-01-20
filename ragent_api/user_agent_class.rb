@@ -360,7 +360,7 @@ class UserAgentClass
     rescue Exception => e
       delta_t = Time.now - start_t
       RAGENT.api.mdi.tools.print_ruby_exception(e)
-      RAGENT.api.mdi.tools.log.info("Agent '#{agent_name}' asset_config event that brought to this crash :\n#{order.inspect}")
+      RAGENT.api.mdi.tools.log.info("Agent '#{agent_name}' asset_config event that brought to this crash :\n#{asset_config.inspect}")
       SDK_STATS.stats['agents'][agent_name]['err_while_process'][6] += 1
       SDK_STATS.stats['agents'][agent_name]['total_error'] += 1
       RUBY_AGENT_STATS.report_an_error("asset_config_#{agent_name}", "#{e}")

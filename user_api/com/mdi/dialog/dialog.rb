@@ -85,6 +85,14 @@ module UserApis
       end
 
       # @api public
+      # Create a new asset metadatum object
+      # @example
+      #   new_asset_metadatum= user_api.mdi.dialog.create_new_asset_metadatum
+      def create_new_asset_metadatum(struct = nil)
+        Dialog::AssetMetadatumClass.new(struct)
+      end
+
+      # @api public
       # @see Dialog::DeviceGateClass
       def device_gate
         Dialog::DeviceGateClass.new(user_api, user_api.user_class.managed_message_channels[0])

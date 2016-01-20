@@ -76,7 +76,7 @@ module UserApis
         Dialog::PokeClass.new(user_api, struct)
       end
 
-      # @api public
+      # @api private
       # Create a new asset config object
       # @example
       #   new_asset_config= user_api.mdi.dialog.create_new_asset_config

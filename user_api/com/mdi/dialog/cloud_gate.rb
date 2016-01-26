@@ -364,22 +364,15 @@ module UserApis
 
         # Set the specific metadatum of an asset
         # @return true if success, false if failed
+        # @param [String] account asset's account
         # @param [String] imei asset's imei
         # @param [AssetMetadatumClass] the metadatum
-        def set_asset_metadatum(account, imei, asset_metadatum)
-          PUNK.start('setassetmetadatum','set asset metadatum...')
+        def buffer_set_asset_metadatum(account, imei, asset_metadatum)
+          user_api.mdi.tools.log.info("Buffering set asset metadatum action for account '#{account}' asset '#{imei}' and asset_metadatum '#{asset_metadatum}'")
 
-          begin
-            CC::RagentHttpApiV3.request_http_cloud_api_put(account, "/assets/#{imei}/metadata/#{name}.json", asset_metadatum.to_hash)
-          rescue Exception => e
-            user_api.mdi.tools.log.error("Error on set asset metadatum")
-            user_api.mdi.tools.print_ruby_exception(e)
-            PUNK.end('setassetmetadatum','ko','out',"SERVER <- SERVER ASSET_METADATUM")
-            return false
-          end
+          throw Exception.new("Parameters cannot be nil") if account.nil? || imei.nil? || asset_metadatum.nil?
 
-          PUNK.end('setassetmetadatum','ok','out',"SERVER <- SERVER ASSET_METADATUM")
-          true
+          user_api.user_class.buffer_set_asset_metadatum(account, imei, asset_metadatum)
         end
       end
     end

@@ -25,6 +25,8 @@ class UserAgentClass
 
     raise "Module agent name not found" if module_name == ""
 
+    @asset_metadata_buffer = {}
+
     self.singleton_class.send(:include, Object.const_get(module_name))
   end
 
@@ -136,10 +138,12 @@ class UserAgentClass
       SDK_STATS.stats['agents'][agent_name]['received'][0] += 1
       SDK_STATS.stats['agents'][agent_name]['total_received'] += 1
       new_presence_from_device(presence)
+      send_all_buffered_metadata
       delta_t = Time.now - start_t
       RUBY_AGENT_STATS.report_a_last_activity("presence_#{agent_name}", "asset: #{presence.asset}")
       PUNK.end('presenceAgent','ok','process',"AGENT:#{agent_name}TNEGA callback PRESENCE '#{presence.type}' in #{(delta_t * 1000).round}ms")
     rescue Exception => e
+      empty_asset_metadata_buffer
       delta_t = Time.now - start_t
       RAGENT.api.mdi.tools.print_ruby_exception(e)
       RAGENT.api.mdi.tools.log.info("Agent '#{agent_name}' presence event that brought to this crash :\n#{presence.inspect}")
@@ -199,6 +203,7 @@ class UserAgentClass
         PUNK.end('msgAgent','ok','in',"AGENT:#{agent_name}TNEGA <- MSG[#{crop_ref(msg.id,4)}] #{msg_type}")
 
       rescue Exception => e
+        empty_asset_metadata_buffer
         RAGENT.api.mdi.tools.print_ruby_exception(e)
         RAGENT.api.mdi.tools.log.info("Agent '#{agent_name}' message event that brought to this crash :\n#{msg.inspect}")
         SDK_STATS.stats['server']['internal_error'] += 1
@@ -220,11 +225,12 @@ class UserAgentClass
         new_msg_from_device(msg)
       end
 
-
+      send_all_buffered_metadata
       delta_t = Time.now - start_t
       RUBY_AGENT_STATS.report_a_last_activity("message_#{agent_name}_#{msg.channel}", "asset: #{msg.asset}")
       PUNK.end('handle','ok','process',"AGENT:#{agent_name}TNEGA callback MSG[#{crop_ref(msg.id,4)}] in #{(delta_t * 1000).round}ms")
     rescue => e
+      empty_asset_metadata_buffer
       delta_t = Time.now - start_t
       RAGENT.api.mdi.tools.log.error("Server: /msg error on agent #{agent_name} while handle_msg")
       RAGENT.api.mdi.tools.print_ruby_exception(e)
@@ -256,10 +262,12 @@ class UserAgentClass
       SDK_STATS.stats['agents'][agent_name]['received'][2] += 1
       SDK_STATS.stats['agents'][agent_name]['total_received'] += 1
       new_track_from_device(track)
+      send_all_buffered_metadata
       delta_t = Time.now - start_t
       RUBY_AGENT_STATS.report_a_last_activity("track_#{agent_name}", "asset: #{track.asset}")
       PUNK.end('trackAgent','ok','process',"AGENT:#{agent_name}TNEGA callback TRACK in #{(delta_t * 1000).round}ms")
     rescue Exception => e
+      empty_asset_metadata_buffer
       delta_t = Time.now - start_t
       RAGENT.api.mdi.tools.print_ruby_exception(e)
       RAGENT.api.mdi.tools.log.info("Agent '#{agent_name}' track event that brought to this crash :\n#{track.inspect}")
@@ -289,10 +297,12 @@ class UserAgentClass
       SDK_STATS.stats['agents'][agent_name]['received'][3] += 1
       SDK_STATS.stats['agents'][agent_name]['total_received'] += 1
       new_order(order)
+      send_all_buffered_metadata
       delta_t = Time.now - start_t
       RUBY_AGENT_STATS.report_a_last_activity("order_#{agent_name}_#{order.code}", "order params: #{order.params}")
       PUNK.end('orderAgent','ok','process',"AGENT:#{agent_name}TNEGA callback ORDER with order '#{order.code}' in #{(delta_t * 1000).round}ms")
     rescue Exception => e
+      empty_asset_metadata_buffer
       delta_t = Time.now - start_t
       RAGENT.api.mdi.tools.print_ruby_exception(e)
       RAGENT.api.mdi.tools.log.info("Agent '#{agent_name}' order event that brought to this crash :\n#{order.inspect}")
@@ -322,10 +332,12 @@ class UserAgentClass
       SDK_STATS.stats['agents'][agent_name]['received'][4] += 1
       SDK_STATS.stats['agents'][agent_name]['total_received'] += 1
       new_collection(collection)
+      send_all_buffered_metadata
       delta_t = Time.now - start_t
       RUBY_AGENT_STATS.report_a_last_activity("collection_#{agent_name}", "collection #{collection.name}")
       PUNK.end('collectionAgent','ok','process',"AGENT:#{agent_name}TNEGA callback COLLECTION with collection '#{collection.name}' in #{(delta_t * 1000).round}ms")
     rescue Exception => e
+      empty_asset_metadata_buffer
       delta_t = Time.now - start_t
       RAGENT.api.mdi.tools.print_ruby_exception(e)
       RAGENT.api.mdi.tools.log.info("Agent '#{agent_name}' collection event that brought to this crash :\n#{collection.inspect}")
@@ -354,10 +366,12 @@ class UserAgentClass
       SDK_STATS.stats['agents'][agent_name]['received'][6] += 1
       SDK_STATS.stats['agents'][agent_name]['total_received'] += 1
       new_asset_config(asset_config)
+      send_all_buffered_metadata
       delta_t = Time.now - start_t
       RUBY_AGENT_STATS.report_a_last_activity("asset_config_#{agent_name}_#{asset_config.asset}", "asset_config{asset_config.asset}")
       PUNK.end('assetConfigAgent','ok','process',"AGENT:#{agent_name}TNEGA callback ASSET CONFIG with asset_config '#{asset_config.asset}' in #{(delta_t * 1000).round}ms")
     rescue Exception => e
+      empty_asset_metadata_buffer
       delta_t = Time.now - start_t
       RAGENT.api.mdi.tools.print_ruby_exception(e)
       RAGENT.api.mdi.tools.log.info("Agent '#{agent_name}' asset_config event that brought to this crash :\n#{asset_config.inspect}")
@@ -384,10 +398,12 @@ class UserAgentClass
       SDK_STATS.stats['agents'][agent_name]['received'][4] += 1
       SDK_STATS.stats['agents'][agent_name]['total_received'] += 1
       new_message_from_queue(params, queue)
+      send_all_buffered_metadata
       delta_t = Time.now - start_t
       RUBY_AGENT_STATS.report_a_last_activity("queue_#{queue}_#{agent_name}", "queue #{queue}")
       PUNK.end('otherqueueAgent','ok','process',"AGENT:#{agent_name}TNEGA callback OTHER_QUEUE with queue #{queue} in #{(delta_t * 1000).round}ms")
     rescue Exception => e
+      empty_asset_metadata_buffer
       delta_t = Time.now - start_t
       RAGENT.api.mdi.tools.print_ruby_exception(e)
       RAGENT.api.mdi.tools.log.info("Agent '#{agent_name}'  queue #{queue} event that brought to this crash :\n#{params.inspect}")
@@ -405,5 +421,53 @@ class UserAgentClass
     RUBY_AGENT_STATS.report_new_response_time("queue_#{queue}_#{agent_name}", delta_t)
   end # handle_other_queue
 
+  def buffer_set_asset_metadatum(account, imei, asset_metadatum)
+    @asset_metadata_buffer[account] ||= {}
+    @asset_metadata_buffer[account][imei] ||= []
+    metadata = @asset_metadata_buffer[account][imei]
+    idx = metadata.index { |x| x[:name] == asset_metadatum[:name] }
+    if idx.nil?
+      metadata << asset_metadatum.clone
+    else
+      # update existing buffered metadata
+      metadata[idx][:type] = asset_metadatum[:type]
+      metadata[idx][:value] = asset_metadatum[:value]
+    end
+  end
 
+  def send_all_buffered_metadata
+    metadata_buffer = @asset_metadata_buffer.clone
+    @asset_metadata_buffer.clear
+
+    metadata_buffer.each do |account,imei_hash|
+      imei_hash.each do |imei, asset_metadata|
+        send_asset_metadata(account, imei, asset_metadata)
+      end
+    end
+  end
+
+  # Set the specific metadata of an asset
+  # @return true if success, false if failed
+  # @param [String] account asset's account
+  # @param [String] imei asset's imei
+  # @param [Array] asset_metadata an array of metadatum (AssetMetadatumClass)
+  def send_asset_metadata(account, imei, asset_metadata)
+    PUNK.start('sendassetmetadata','send asset metadata...')
+
+    begin
+      CC::RagentHttpApiV3.request_http_cloud_api_put(account, "/assets/#{imei}/metadata_bulk_update.json", asset_metadata.to_json)
+    rescue Exception => e
+      user_api.mdi.tools.log.error("Error on send asset metadata")
+      user_api.mdi.tools.print_ruby_exception(e)
+      PUNK.end('sendassetmetadata','ko','out',"SERVER <- SERVER ASSET_METADATA")
+      return false
+    end
+
+    PUNK.end('sendassetmetadata','ok','out',"SERVER <- SERVER ASSET_METADATA")
+    true
+  end
+
+  def empty_asset_metadata_buffer
+    @asset_metadata_buffer.clear
+  end
 end

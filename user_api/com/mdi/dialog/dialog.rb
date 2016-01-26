@@ -10,6 +10,7 @@ require_relative 'order'
 require_relative 'collection'
 require_relative 'poke'
 require_relative 'asset_config'
+require_relative 'asset_metadatum'
 require_relative 'cloud_gate'
 require_relative 'device_gate'
 

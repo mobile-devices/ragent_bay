@@ -425,21 +425,28 @@ class UserAgentClass
     @asset_metadata_buffer[account] ||= {}
     @asset_metadata_buffer[account][imei] ||= []
     metadata = @asset_metadata_buffer[account][imei]
+    RAGENT.api.mdi.tools.log.info("Request to buffer asset metadatum: #{asset_metadatum}")
+
     idx = metadata.index do |x|
       x[:name] == asset_metadatum[:name]
     end
     if idx.nil?
       metadata << asset_metadatum.clone
+      RAGENT.api.mdi.tools.log.info("Added to asset metadata buffer")
     else
       # update existing buffered metadata
       metadata[idx][:type] = asset_metadatum[:type]
       metadata[idx][:value] = asset_metadatum[:value]
+      RAGENT.api.mdi.tools.log.info("Updated metadatum of asset metadata buffer")
     end
   end
 
   def send_all_buffered_metadata
     metadata_buffer = @asset_metadata_buffer.clone
     @asset_metadata_buffer.clear
+
+    RAGENT.api.mdi.tools.log.info("Sending all from asset metadata buffer")
+    RAGENT.api.mdi.tools.log.info("Buffer content: #{metadata_buffer}")
 
     metadata_buffer.each do |account,imei_hash|
       imei_hash.each do |imei, asset_metadata|
@@ -455,6 +462,8 @@ class UserAgentClass
   # @param [Array] asset_metadata an array of metadatum (AssetMetadatumClass)
   def send_asset_metadata(account, imei, asset_metadata)
     PUNK.start('sendassetmetadata','send asset metadata...')
+    RAGENT.api.mdi.tools.log.info("Sending asset metadata for imei #{imei} of account #{account}")
+    RAGENT.api.mdi.tools.log.info("Data : #{asset_metadata.to_json}")
 
     begin
       CC::RagentHttpApiV3.request_http_cloud_api_put(account, "/assets/#{imei}/metadata_bulk_update.json", asset_metadata.to_json)
@@ -465,6 +474,7 @@ class UserAgentClass
       return false
     end
 
+    RAGENT.api.mdi.tools.log.info("Sent")
     PUNK.end('sendassetmetadata','ok','out',"SERVER <- SERVER ASSET_METADATA")
     true
   end

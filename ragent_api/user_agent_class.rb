@@ -425,7 +425,9 @@ class UserAgentClass
     @asset_metadata_buffer[account] ||= {}
     @asset_metadata_buffer[account][imei] ||= []
     metadata = @asset_metadata_buffer[account][imei]
-    idx = metadata.index { |x| x[:name] == asset_metadatum[:name] }
+    idx = metadata.index do |x|
+      x[:name] == asset_metadatum[:name]
+    end
     if idx.nil?
       metadata << asset_metadatum.clone
     else

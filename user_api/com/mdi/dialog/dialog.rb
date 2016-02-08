@@ -9,6 +9,8 @@ require_relative 'track'
 require_relative 'order'
 require_relative 'collection'
 require_relative 'poke'
+require_relative 'asset_config'
+require_relative 'asset_metadatum'
 require_relative 'cloud_gate'
 require_relative 'device_gate'
 
@@ -73,6 +75,22 @@ module UserApis
       #   new_poke= user_api.mdi.dialog.create_new_poke
       def create_new_poke(struct = nil)
         Dialog::PokeClass.new(user_api, struct)
+      end
+
+      # @api private
+      # Create a new asset config object
+      # @example
+      #   new_asset_config= user_api.mdi.dialog.create_new_asset_config
+      def create_new_asset_config(struct = nil)
+        Dialog::AssetConfigClass.new(user_api, struct)
+      end
+
+      # @api public
+      # Create a new asset metadatum object
+      # @example
+      #   new_asset_metadatum= user_api.mdi.dialog.create_new_asset_metadatum
+      def create_new_asset_metadatum(struct = nil)
+        Dialog::AssetMetadatumClass.new(struct)
       end
 
       # @api public

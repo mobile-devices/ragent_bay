@@ -317,7 +317,63 @@ module UserApis
           end
         end
 
+        # Get the metadata of an asset
+        # @return an array of [AssetMetadatumClass] metadata
+        # @param [String] imei asset's imei
+        def get_asset_metadata(account, imei)
+          PUNK.start('getassetmetadata','get asset metadata...')
+          ret = nil
+          begin
+            ret = CC::RagentHttpApiV3.request_http_cloud_api(account, "/assets/#{imei}/metadata.json")
+          rescue Exception => e
+            user_api.mdi.tools.log.error("Error on get asset metadata")
+            user_api.mdi.tools.print_ruby_exception(e)
+            PUNK.end('getassetmetadata','ko','in',"SERVER -> SERVER ASSET_METADATA")
+            return nil
+          end
 
+          PUNK.end('getassetmetadata','ok','in',"SERVER -> SERVER ASSET_METADATA")
+          ret ||= []
+          result = ret.map { |x| Dialog::AssetMetadatumClass.new(x) }
+
+          result
+        end
+
+        # Get the specific metadatum of an asset
+        # @return [AssetMetadatumClass] a metadatum
+        # @param [String] imei asset's imei
+        # @param [String] name the name of the metadatum
+        def get_asset_metadatum(account, imei, name)
+          PUNK.start('getassetmetadatum','get asset metadatum...')
+          ret = nil
+          begin
+            ret = CC::RagentHttpApiV3.request_http_cloud_api(account, "/assets/#{imei}/metadata/#{name}.json")
+          rescue Exception => e
+            user_api.mdi.tools.log.error("Error on get asset metadatum")
+            user_api.mdi.tools.print_ruby_exception(e)
+            PUNK.end('getassetmetadatum','ko','in',"SERVER -> SERVER ASSET_METADATUM")
+            return nil
+          end
+
+          PUNK.end('getassetmetadatum','ok','in',"SERVER -> SERVER ASSET_METADATUM")
+
+          result = Dialog::AssetMetadatumClass.new(ret)
+
+          result
+        end
+
+        # Set the specific metadatum of an asset
+        # @return true if success, false if failed
+        # @param [String] account asset's account
+        # @param [String] imei asset's imei
+        # @param [AssetMetadatumClass] the metadatum
+        def buffer_set_asset_metadatum(account, imei, asset_metadatum)
+          user_api.mdi.tools.log.info("Buffering set asset metadatum action for account '#{account}' asset '#{imei}' and asset_metadatum '#{asset_metadatum}'")
+
+          throw Exception.new("Parameters cannot be nil") if account.nil? || imei.nil? || asset_metadatum.nil?
+
+          user_api.user_class.buffer_set_asset_metadatum(account, imei, asset_metadatum)
+        end
       end
     end
   end

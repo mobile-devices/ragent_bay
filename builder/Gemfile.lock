@@ -23,7 +23,7 @@ PLATFORMS
 
 DEPENDENCIES
   activesupport (~> 4.1.2)
-  json (~> 1.8.0)
+  json (~> 1.8.2)
   minitest (~> 5.3.5)
   tzinfo (~> 1.2.1)
   whenever (~> 0.8.2)

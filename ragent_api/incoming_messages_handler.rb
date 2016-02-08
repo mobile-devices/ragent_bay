@@ -577,6 +577,63 @@ module RagentIncomingMessage
 
   end
 
+  def self.handle_asset_config(params)
+
+    # valid input
+    if valid_params(params)
+      account = params['meta']['account']
+    else
+      return
+    end
+
+    PUNK.start('new')
+    RAGENT.api.mdi.tools.log.debug("\n\n\n\nServer: new incoming asset config:\n#{params}")
+    PUNK.end('new','ok','in',"SERVER <- ASSET_CONFIG : receive new asset config")
+    SDK_STATS.stats['server']['received'][7] += 1
+
+
+    # forward to each agent
+    RAGENT.user_class_asset_config_subscriber.get_subscribers.each do |user_agent_class|
+      io_rule = user_agent_class.internal_config_io_fetch_first('assets config')
+      next if io_rule == nil
+
+      begin
+        PUNK.start('damned')
+        env = {
+          'account' => account,
+          'agent_name' => user_agent_class.agent_name
+        }
+
+        apis = USER_API_FACTORY.gen_user_api(user_agent_class, env)
+
+        # create poke object
+        asset_config = apis.mdi.dialog.create_new_asset_config(params)
+
+        # set associated api as current sdk_api
+        apis.initial_event_content = asset_config.clone
+        set_current_user_api(apis)
+
+        PUNK.start('new')
+        RAGENT.api.mdi.tools.log.debug("#{user_agent_class.agent_name}: new incoming asset config:\n#{asset_config.inspect}")
+        PUNK.end('new','ok','in',"AGENT:#{user_agent_class.agent_name}TNEGA <- ASSET_CONFIG")
+
+        # process it, should never fail, but if its happen we will have a wrong error on parse fail but no deadlock
+        user_agent_class.handle_asset_config(asset_config.clone)
+      rescue Exception => e
+        RAGENT.api.mdi.tools.print_ruby_exception(e)
+        RAGENT.api.mdi.tools.log.info("Ragent error parse asset config :\n#{params}")
+        RUBY_AGENT_STATS.report_an_error("ragent asset config parse fail", "#{e}")
+        SDK_STATS.stats['server']['err_parse'][7] += 1
+        SDK_STATS.stats['server']['internal_error'] += 1
+        PUNK.end('damned','ko','in',"SERVER <- asset config : parse params fail")
+      ensure
+        PUNK.drop('damned')
+        release_current_user_api
+      end
+
+    end # each user_agent_class
+
+  end
 
   # futur !
   def self.handle_alert(params)

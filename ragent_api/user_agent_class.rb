@@ -445,8 +445,7 @@ class UserAgentClass
     metadata_buffer = @asset_metadata_buffer.clone
     @asset_metadata_buffer.clear
 
-    RAGENT.api.mdi.tools.log.info("Sending all from asset metadata buffer")
-    RAGENT.api.mdi.tools.log.info("Buffer content: #{metadata_buffer}")
+    RAGENT.api.mdi.tools.log.info("Sending all from asset metadata buffer: #{metadata_buffer}") unless metadata_buffer.empty?
 
     metadata_buffer.each do |account,imei_hash|
       imei_hash.each do |imei, asset_metadata|

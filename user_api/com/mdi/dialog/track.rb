@@ -310,7 +310,6 @@ module UserApis
           field['raw_value'] = raw_value
           field['value'] = value
           field['fresh'] = true
-          self.recorded_at = Time.now.to_i
           self.fields_data << field
           self.id = nil # invalid track because some field has changed
         end

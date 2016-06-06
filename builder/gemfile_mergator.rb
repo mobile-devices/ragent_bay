@@ -20,7 +20,7 @@ def merge_gem_file(master_gem_file, gemfiles_contents)
         master << line
       end
 
-      if line[0, 7] == 'source '
+      if line[0, 7] == 'source ' || line[0, 3] == 'end'
         master << line
       end
     end
@@ -42,7 +42,7 @@ end
 def get_gem_name(txt)
   #p "is_gem_line? of #{txt}"
 
-  return nil unless txt[0,4] == 'gem '
+  return nil unless /^\s*gem/.match(txt)
 
   sp = txt.split('\'')
   p sp

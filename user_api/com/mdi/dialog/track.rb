@@ -32,7 +32,7 @@ module UserApis
 
         # @!attribute [rw] recorded_at
         #   @api public
-        #   @return [Bignum] when the track was recorded by the device or the provider
+        #   @return [Float] when the track was recorded by the device or the provider
 
         # @!attribute [rw] received_at
         #   @api public
@@ -111,7 +111,7 @@ module UserApis
               self.recorded_at = nil
               self.received_at = nil
             else
-              self.recorded_at = payload['recorded_at'].to_i
+              self.recorded_at = payload['recorded_at'].to_f
               self.received_at = payload['received_at'].to_i
             end
 
@@ -195,7 +195,7 @@ module UserApis
           r_hash['payload'] = {
             'id' => self.id,
             'asset' => self.asset,
-            'recorded_at' => self.recorded_at.to_i,
+            'recorded_at' => self.recorded_at.to_f,
             'received_at' => self.received_at.to_i,
             'latitude' => self.latitude == nil ? nil : self.latitude.to_f,
             'longitude' => self.longitude == nil ? nil : self.longitude.to_f
@@ -233,7 +233,7 @@ module UserApis
             'sender' => 'ragent', # todo: add in model of db viewer (todo)
             'asset' => self.asset,
             'received_at' => Time.now.to_i,
-            'recorded_at' => self.recorded_at == nil ? Time.now.to_i : self.recorded_at.to_i,
+            'recorded_at' => self.recorded_at == nil ? Time.now.to_i : self.recorded_at.to_f,
             'latitude' => self.latitude == nil ? nil : self.latitude.to_f,
             'longitude' => self.longitude == nil ? nil : self.longitude.to_f
           }

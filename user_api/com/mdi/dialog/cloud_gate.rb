@@ -176,6 +176,9 @@ module UserApis
 
             # success !
             PUNK.end('injectmsg','ok','out',"SERVER <- SERVER MSG[#{crop_ref(out_id,4)}]")
+            if RAGENT.running_env_name == 'sdk-vm'
+              TestsHelper.message_injected(user_api.mdi.dialog.create_new_message(inject_hash))
+            end
 
             SDK_STATS.stats['agents'][user_api.user_class.agent_name]['inject_to_cloud'] += 1
             SDK_STATS.stats['agents'][user_api.user_class.agent_name]['total_sent'] += 1
@@ -196,12 +199,12 @@ module UserApis
         # @param [TrackClass] track to inject
         # @example Injecte a new track to the cloud
         #   new_track = user_api.mdi.dialog.create_new_track
-        #   new_track.recorded_at = Time.now.to_i
         #   new_track.latitude = 4878384 # in degree * 10^-5
         #   new_track.longitude =  236682 # in degree * 10^-5
         #   new_track.asset = "3735843415387632"
         #   new_track.account = "my_account"
         #   new_track.set_field("MDI_CC_LEGAL_SPEED", "50")
+        #   new_track.recorded_at = Time.now.to_i
         #   user_api.mdi.dialog.cloud_gate.inject_track(new_track)
         def inject_track(track)
           raise "Track id #{track.id} has already been sent into the cloud. Dropping injection."  if track.id != nil
@@ -220,6 +223,9 @@ module UserApis
 
             # success !
             PUNK.end('injecttrack','ok','out',"SERVER <- SERVER TRACK")
+            if RAGENT.running_env_name == 'sdk-vm'
+              TestsHelper.track_injected(user_api.mdi.dialog.create_new_message(track))
+            end
 
             SDK_STATS.stats['agents'][user_api.user_class.agent_name]['inject_to_cloud'] += 1
             return sent['payload']['id']

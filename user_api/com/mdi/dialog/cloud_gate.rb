@@ -220,12 +220,12 @@ module UserApis
             sent = track.to_hash_to_send_to_cloud
             user_api.mdi.tools.log.info("Pushing track #{sent}")
             CC.push(sent,'tracks')
+            if RAGENT.running_env_name == 'sdk-vm'
+              TestsHelper.track_injected(user_api.mdi.dialog.create_new_track(sent))
+            end
 
             # success !
             PUNK.end('injecttrack','ok','out',"SERVER <- SERVER TRACK")
-            if RAGENT.running_env_name == 'sdk-vm'
-              TestsHelper.track_injected(user_api.mdi.dialog.create_new_message(track))
-            end
 
             SDK_STATS.stats['agents'][user_api.user_class.agent_name]['inject_to_cloud'] += 1
             return sent['payload']['id']

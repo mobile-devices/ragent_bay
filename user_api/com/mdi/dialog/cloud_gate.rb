@@ -172,13 +172,13 @@ module UserApis
               # todo: put some limitation
               user_api.mdi.tools.log.info("Pushing message #{inject_hash}")
               CC.push(inject_hash,'messages')
+              if RAGENT.running_env_name == 'sdk-vm'
+                TestsHelper.message_injected(user_api.mdi.dialog.create_new_message(inject_hash))
+              end
             end
 
             # success !
             PUNK.end('injectmsg','ok','out',"SERVER <- SERVER MSG[#{crop_ref(out_id,4)}]")
-            if RAGENT.running_env_name == 'sdk-vm'
-              TestsHelper.message_injected(user_api.mdi.dialog.create_new_message(inject_hash))
-            end
 
             SDK_STATS.stats['agents'][user_api.user_class.agent_name]['inject_to_cloud'] += 1
             SDK_STATS.stats['agents'][user_api.user_class.agent_name]['total_sent'] += 1

@@ -176,6 +176,9 @@ module UserApis
 
             # success !
             PUNK.end('injectmsg','ok','out',"SERVER <- SERVER MSG[#{crop_ref(out_id,4)}]")
+            if RAGENT.running_env_name == 'sdk-vm'
+              TestsHelper.message_injected(user_api.mdi.dialog.create_new_message(inject_hash))
+            end
 
             SDK_STATS.stats['agents'][user_api.user_class.agent_name]['inject_to_cloud'] += 1
             SDK_STATS.stats['agents'][user_api.user_class.agent_name]['total_sent'] += 1
@@ -220,6 +223,9 @@ module UserApis
 
             # success !
             PUNK.end('injecttrack','ok','out',"SERVER <- SERVER TRACK")
+            if RAGENT.running_env_name == 'sdk-vm'
+              TestsHelper.track_injected(user_api.mdi.dialog.create_new_message(track))
+            end
 
             SDK_STATS.stats['agents'][user_api.user_class.agent_name]['inject_to_cloud'] += 1
             return sent['payload']['id']

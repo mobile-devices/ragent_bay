@@ -52,7 +52,7 @@ module UserApis
         def to_hash
           r_hash = {}
           r_hash['agent'] = self.agent
-          r_hash['order'] = self.order
+          r_hash['code'] = self.code
           r_hash['params'] = self.params
           r_hash.delete_if { |k, v| v.nil? }
         end

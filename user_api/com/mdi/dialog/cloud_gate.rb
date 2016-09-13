@@ -221,7 +221,15 @@ module UserApis
             user_api.mdi.tools.log.info("Pushing track #{sent}")
             CC.push(sent,'tracks')
             if RAGENT.running_env_name == 'sdk-vm'
-              TestsHelper.track_injected(user_api.mdi.dialog.create_new_track(sent))
+              fields = sent['payload'].delete('fields')
+              track_to_inject = user_api.mdi.dialog.create_new_track(sent)
+              unless fields.nil?
+                fields.each do |field|
+                  track_to_inject.set_field(field['name'], field['data'])
+                end
+                track_to_inject.recorded_at = sent['payload']['recorded_at']
+              end
+              TestsHelper.track_injected(track_to_inject)
             end
 
             # success !

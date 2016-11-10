@@ -286,6 +286,8 @@ module UserApis
             # NOP
           when 'boolean'
             raise "#{value} is not a boolean" if ("#{value}" != 'true' and "#{value}" != 'false')
+          when 'double'
+            raise "#{value} is not a double" if "#{value}" != "#{value.to_f}"
           end
 
           raw_value = value
@@ -303,6 +305,9 @@ module UserApis
             when 'boolean'
               # field['value'] = v.to_s == "\x01" ? true : false
               raw_value = value ? "\x01" : "\x00"
+            when 'double'
+              # field['value'] = v.unpack('D').first
+              raw_value = [value.to_f].pack('D')
             end
           end
 

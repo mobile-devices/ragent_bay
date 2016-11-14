@@ -170,6 +170,8 @@ module UserApis
                   field['value'] = v.to_s
                 when 'boolean'
                   field['value'] = v.to_s == "\x01" ? true : false
+                when 'double'
+                  field['value'] = v.to_s.unpack('E').first
                 end
               end
               #idea: metric for pos, speed
@@ -286,6 +288,8 @@ module UserApis
             # NOP
           when 'boolean'
             raise "#{value} is not a boolean" if ("#{value}" != 'true' and "#{value}" != 'false')
+          when 'double'
+            raise "#{value} is not a double" if "#{value}" != "#{value.to_f}"
           end
 
           raw_value = value
@@ -303,6 +307,9 @@ module UserApis
             when 'boolean'
               # field['value'] = v.to_s == "\x01" ? true : false
               raw_value = value ? "\x01" : "\x00"
+            when 'double'
+              # field['value'] = v.unpack('E').first # little endian
+              raw_value = [value.to_f].pack('E')
             end
           end
 
@@ -379,6 +386,8 @@ module UserApis
                     field['value'] = field['value'].to_s
                   when 'boolean'
                     field['value'] = field['value'].to_s == "\x01" ? true : false
+                  when 'double'
+                    field['value'] = field['value'].to_s.unpack('E').first
                   end # case type for decode
                 end # in ragent mode
                 RAGENT.api.mdi.tools.log.debug("Found field from cached :#{field}")

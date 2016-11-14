@@ -222,7 +222,7 @@ module RagentIncomingMessage
         if looped != nil
           PUNK.start('loopdrop')
           RAGENT.api.mdi.tools.log.warn("Loop detected. Dropping incoming message #{ragent_msg.id}")
-          PUNK.end('loopdrop','warn','notif',"Loop detected. AGENT:#{user_agent_class.agent_name}TNEGA drop incoming message #{message.id}")
+          PUNK.end('loopdrop','warn','notif',"Loop detected. AGENT:#{user_agent_class.agent_name}TNEGA drop incoming message #{ragent_msg.id}")
           next
         end
 

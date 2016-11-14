@@ -170,6 +170,8 @@ module UserApis
                   field['value'] = v.to_s
                 when 'boolean'
                   field['value'] = v.to_s == "\x01" ? true : false
+                when 'double'
+                  field['value'] = v.to_s.unpack('E').first
                 end
               end
               #idea: metric for pos, speed
@@ -384,6 +386,8 @@ module UserApis
                     field['value'] = field['value'].to_s
                   when 'boolean'
                     field['value'] = field['value'].to_s == "\x01" ? true : false
+                  when 'double'
+                    field['value'] = field['value'].to_s.unpack('E').first
                   end # case type for decode
                 end # in ragent mode
                 RAGENT.api.mdi.tools.log.debug("Found field from cached :#{field}")

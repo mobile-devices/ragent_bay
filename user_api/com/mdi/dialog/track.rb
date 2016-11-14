@@ -306,8 +306,8 @@ module UserApis
               # field['value'] = v.to_s == "\x01" ? true : false
               raw_value = value ? "\x01" : "\x00"
             when 'double'
-              # field['value'] = v.unpack('D').first
-              raw_value = [value.to_f].pack('D')
+              # field['value'] = v.unpack('E').first # little endian
+              raw_value = [value.to_f].pack('E')
             end
           end
 

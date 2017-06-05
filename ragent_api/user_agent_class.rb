@@ -146,6 +146,7 @@ class UserAgentClass
       empty_asset_metadata_buffer
       delta_t = Time.now - start_t
       RAGENT.api.mdi.tools.print_ruby_exception(e)
+      RAGENT.api.mdi.tools.send_error(e, presence)
       RAGENT.api.mdi.tools.log.info("Agent '#{agent_name}' presence event that brought to this crash :\n#{presence.inspect}")
       SDK_STATS.stats['agents'][agent_name]['err_while_process'][0] += 1
       SDK_STATS.stats['agents'][agent_name]['total_error'] += 1
@@ -205,6 +206,7 @@ class UserAgentClass
       rescue Exception => e
         empty_asset_metadata_buffer
         RAGENT.api.mdi.tools.print_ruby_exception(e)
+        RAGENT.api.mdi.tools.send_error(e, msg)
         RAGENT.api.mdi.tools.log.info("Agent '#{agent_name}' message event that brought to this crash :\n#{msg.inspect}")
         SDK_STATS.stats['server']['internal_error'] += 1
         SDK_STATS.stats['agents'][agent_name]['total_error'] += 1
@@ -234,6 +236,7 @@ class UserAgentClass
       delta_t = Time.now - start_t
       RAGENT.api.mdi.tools.log.error("Server: /msg error on agent #{agent_name} while handle_msg")
       RAGENT.api.mdi.tools.print_ruby_exception(e)
+      RAGENT.api.mdi.tools.send_error(e, msg)
       RAGENT.api.mdi.tools.log.info("Agent '#{agent_name}' message event that brought to this crash :\n#{msg.inspect}")
       SDK_STATS.stats['agents'][agent_name]['err_while_process'][1] += 1
       SDK_STATS.stats['agents'][agent_name]['total_error'] += 1
@@ -270,6 +273,7 @@ class UserAgentClass
       empty_asset_metadata_buffer
       delta_t = Time.now - start_t
       RAGENT.api.mdi.tools.print_ruby_exception(e)
+      RAGENT.api.mdi.tools.send_error(e, track)
       RAGENT.api.mdi.tools.log.info("Agent '#{agent_name}' track event that brought to this crash :\n#{track.inspect}")
       SDK_STATS.stats['agents'][agent_name]['err_while_process'][2] += 1
       SDK_STATS.stats['agents'][agent_name]['total_error'] += 1
@@ -305,6 +309,7 @@ class UserAgentClass
       empty_asset_metadata_buffer
       delta_t = Time.now - start_t
       RAGENT.api.mdi.tools.print_ruby_exception(e)
+      RAGENT.api.mdi.tools.send_error(e, order)
       RAGENT.api.mdi.tools.log.info("Agent '#{agent_name}' order event that brought to this crash :\n#{order.inspect}")
       SDK_STATS.stats['agents'][agent_name]['err_while_process'][3] += 1
       SDK_STATS.stats['agents'][agent_name]['total_error'] += 1
@@ -340,6 +345,7 @@ class UserAgentClass
       empty_asset_metadata_buffer
       delta_t = Time.now - start_t
       RAGENT.api.mdi.tools.print_ruby_exception(e)
+      RAGENT.api.mdi.tools.send_error(e, collection)
       RAGENT.api.mdi.tools.log.info("Agent '#{agent_name}' collection event that brought to this crash :\n#{collection.inspect}")
       SDK_STATS.stats['agents'][agent_name]['err_while_process'][4] += 1
       SDK_STATS.stats['agents'][agent_name]['total_error'] += 1
@@ -374,6 +380,7 @@ class UserAgentClass
       empty_asset_metadata_buffer
       delta_t = Time.now - start_t
       RAGENT.api.mdi.tools.print_ruby_exception(e)
+      RAGENT.api.mdi.tools.send_error(e, asset_config)
       RAGENT.api.mdi.tools.log.info("Agent '#{agent_name}' asset_config event that brought to this crash :\n#{asset_config.inspect}")
       SDK_STATS.stats['agents'][agent_name]['err_while_process'][6] += 1
       SDK_STATS.stats['agents'][agent_name]['total_error'] += 1
@@ -406,6 +413,7 @@ class UserAgentClass
       empty_asset_metadata_buffer
       delta_t = Time.now - start_t
       RAGENT.api.mdi.tools.print_ruby_exception(e)
+      RAGENT.api.mdi.tools.send_error(e, params)
       RAGENT.api.mdi.tools.log.info("Agent '#{agent_name}'  queue #{queue} event that brought to this crash :\n#{params.inspect}")
       SDK_STATS.stats['agents'][agent_name]['err_while_process'][4] += 1
       SDK_STATS.stats['agents'][agent_name]['total_error'] += 1

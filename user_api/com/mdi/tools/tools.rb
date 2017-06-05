@@ -42,6 +42,11 @@ module UserApis
       end
 
       # @api public
+      def send_error(e, event)
+        # must be impl #
+      end
+
+      # @api public
       # A logger correctly configured for your environment.
       # @see Tools::LogClass
       def log

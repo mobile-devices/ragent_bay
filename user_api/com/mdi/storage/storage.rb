@@ -44,7 +44,7 @@ module UserApis
       # vagrant ssh will help you to log into you virtual cloud
       # @return a Mongo::DB
       def mongodb
-        CC.mongoClient.db("#{user_api.agent_name}")
+        CC.mongoClient.use("#{user_api.agent_name}").database
       end
 
       # @api_private

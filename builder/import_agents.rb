@@ -134,16 +134,16 @@ p "Import #{agents_root_path}"
 
 
 ### delete old project ###
-reset_folder(agents_src_path)
+# reset_folder(agents_src_path)
 reset_folder(agents_generated_path)
 
 
 ### copy new ###
-agents_root_path.each do |path|
-  p "copy #{path} to #{agents_src_path} ..."
-  FileUtils.cp_r(path, agents_src_path)
-  p "copied '#{path}'"
-end
+# agents_root_path.each do |path|
+#   p "copy #{path} to #{agents_src_path} ..."
+#   FileUtils.cp_r(path, agents_src_path)
+#   p "copied '#{path}'"
+# end
 
 # removing all .git folder
 raise "fail on folder name" if !(agents_src_path.include?('agents_project_source'))

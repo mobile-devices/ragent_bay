@@ -1,0 +1,163 @@
+package <%= protocol_set.config.get(:java, :package_name)%>;
+
+import java.util.HashMap;
+import org.msgpack.type.MapValue;
+import org.msgpack.type.Value;
+
+import java.io.UnsupportedEncodingException;
+
+/*
+ * Each nested class of this class defines a protogen message
+ *
+ */
+public class MDIMessages {
+  public static final String PROTOCOL_VERSION = "<%= protocol.version_string %>";
+  public static final String PG_VERSION = "<%= protocol_set.config.get(:global, :pg_version) %>";
+
+  <% protocol.messages.each do |msg| %>
+  public static final int ID_<%= msg.name.upcase %> = <%= msg.id %>; <% end %>
+
+  public abstract static class AbstractMessage {
+    public int protogenSequenceId = -1;
+    public int protogenShotId = -1;
+    public int protogenMessageId = -1;
+    public int protogenMessageCount = -1;
+    public abstract HashMap<String,Object> toHash();
+    public abstract boolean hasCookie(int cookieID);
+    public boolean isPartial() { return false; }
+  }
+
+  <% protocol.messages.each do |msg| %>
+  /**
+   * <%= msg.docstring || "Protogen message object"%>
+   */
+  public static class <%= msg.name %> extends AbstractMessage {
+  <% msg.fields.each do |field|
+    ft = field.type.name
+    is_array = field.array? %>
+    /**
+     * <%= field.docstring %>
+     */
+    public <%= MSGPACK2JAVA[ft]||ft %><%= ( is_array ? '[]' : '' ) %> <%= field.name %> = <%= plugin.nullvalue(ft, is_array) %>;<% end %>
+
+    public <%= msg.name %>() {
+      protogenMessageId = MDIMessages.ID_<%= msg.name.upcase %>;
+    }
+
+    public <%= msg.name %>(MapValue hm) {
+      try {
+        protogenMessageId = MDIMessages.ID_<%= msg.name.upcase %>;
+        for (java.util.Map.Entry<Value, Value> kv : hm.entrySet()) {
+          String key = new String(kv.getKey().asRawValue().getByteArray(), "UTF-8");
+          <% msg.fields.each do |field|
+          %>if (key.equals("<%= field.name %>")) {<%
+            ft = field.type.name
+              if field.array? %>
+            Value[] tab = kv.getValue().asArrayValue().getElementArray();
+            <%= field.name %> = new <%= (ft == 'bytes' ? "byte[tab.length][]" : "#{MSGPACK2JAVA[ft]||ft}[tab.length]") %>;
+            for(int i = 0 ; i < tab.length ; i++){
+              <%= field.name %>[i] = <%=
+              case ft
+              when 'string' then 'new String(tab[i].asRawValue().getByteArray(), "UTF-8")'
+              when 'int' then "tab[i].asIntegerValue().getInt()"
+              when 'bool' then "tab[i].asBooleanValue().getBoolean()"
+              when 'float' then "tab[i].asFloatValue().getFloat()"
+              when 'bytes' then "tab[i].asRawValue().getByteArray()"
+              when *protocol.msg_names then "new #{ft}(tab[i].asMapValue())"
+              else raise "#{ft} conversion not implemented."
+              end %>;
+            }
+            <% else %>
+            <%= field.name %> = <%=
+              case ft
+              when 'string' then 'new String(kv.getValue().asRawValue().getByteArray(), "UTF-8")'
+              when 'int' then "kv.getValue().asIntegerValue().getInt()"
+              when 'bool' then "kv.getValue().asBooleanValue().getBoolean()"
+              when 'float' then "kv.getValue().asFloatValue().getFloat()"
+              when 'bytes' then "kv.getValue().asRawValue().getByteArray()"
+              when *protocol.msg_names then "new #{ft}(kv.getValue().asMapValue())"
+              else raise "#{ft} conversion not implemented."
+              end %>;<% end %>
+          } else if(key.equals("_s")) {
+            protogenSequenceId = kv.getValue().asIntegerValue().getInt();
+          } else if(key.equals("_h")) {
+            protogenShotId = kv.getValue().asIntegerValue().getInt();
+          } else if (key.equals("_c")) {
+            protogenMessageCount = kv.getValue().asIntegerValue().getInt();
+          } else <% end %> {
+            System.out.println("Protogen: ignoring unknown field " + key + " when decoding a message of type <%= msg.name %>");
+          }
+        }
+      } catch (UnsupportedEncodingException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    public HashMap<String,Object> toHash() {
+        HashMap<String,Object> hm = new HashMap<String,Object>();
+<%- msg.fields.each do |field|
+      ft = field.type.name
+      unless field.type.basic_type?
+        if field.required? -%>
+        if (<%= field.name %> == null) {
+          throw new RuntimeException("<%= field.name %> is required and can not be null");
+        }
+        <%- end
+        if field.array? -%>
+        if (<%= field.name %> != null) {
+          HashMap[] _<%= field.name %> = new HashMap[<%= field.name %>.length];
+          for(int i = 0; i < <%= field.name %>.length; i++) {
+            _<%= field.name %>[i] = <%= field.name %>[i].toHash();
+          }
+          hm.put("<%= field.name %>",_<%= field.name %>);
+        }
+        <%- else -%>
+        if (<%= field.name %> != null) {
+          hm.put("<%= field.name %>",<%= field.name %>.toHash());
+        }
+    <%- end
+      else -%>
+    <%- if ft == 'string'
+        if field.required? -%>
+        if (<%= field.name %> == null) {
+          throw new RuntimeException("<%= field.name %> is required and can not be null");
+        }
+        <%- end -%>
+        if (<%= field.name %> != null) {
+          try {
+            hm.put("<%= field.name %>",<%= field.name %>.getBytes("UTF-8")); // <%= ft %>
+          } catch (UnsupportedEncodingException e) {
+            throw new RuntimeException(e);
+          }
+        }
+     <% else %>
+        hm.put("<%= field.name %>",<%= field.name %>); // <%= ft %> // todo: check if the field required - do not encore fields that are not required
+    <%- end -%>
+  <%- end -%>
+<%- end -%>
+      hm.put("_s", protogenSequenceId);
+      hm.put("_h", protogenShotId);
+      return hm;
+    }
+
+    public boolean hasCookie(int cookieId) {
+      <% if protocol.has_cookies? %>
+      switch(cookieId) {
+      <% protocol.cookies.each do |cookie| %>
+        case CookieJar.<%= cookie.name.upcase %>_ID:
+      <% if cookie.send_with.include?(msg) %>
+          return true;
+      <% else %>
+          return false;
+      <% end
+      end %>
+        default:
+          return false;
+      }
+      <% else %>
+        return false;
+      <% end %>
+    }
+  }
+  <% end %>
+}

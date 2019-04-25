@@ -1,0 +1,58 @@
+package <%= protocol_set.config.get(:java, :package_name)%>;
+
+import com.mdi.tools.std.BuffRef;
+
+public class CookieJar {
+
+  public static final String PROTOCOL_VERSION = "<%= protocol.version_string %>";
+  public static final String PG_VERSION = "<%= protocol_set.config.get(:global, :pg_version) %>";
+
+  public static class StoredCookie {
+    public final BuffRef  content;
+    public final BuffRef  signature;
+    public final int      expiration;
+    public                StoredCookie(BuffRef content_t, BuffRef signature_t, int expiration_t){
+      content = content_t;
+      signature = signature_t;
+      expiration = expiration_t;
+    }
+  }
+  <% protocol.cookies.each do |cookie| %>
+  private static StoredCookie _<%= cookie.name.downcase %> = null;<% end %>
+  <% protocol.cookies.each do |cookie| %>
+  public static final int <%= cookie.name.upcase %>_ID = <%= cookie.id %>;<% end %>
+
+  public static void set(int id, StoredCookie cookie) {
+    switch(id){<% protocol.cookies.each do |cookie| %>
+    case <%= cookie.name.upcase %>_ID:
+      _<%= cookie.name.downcase %> = cookie;<% end %>
+    }
+  }
+
+  public static StoredCookie get(int id) {
+    switch(id){<% protocol.cookies.each do |cookie| %>
+    case <%= cookie.name.upcase %>_ID:
+      return _<%= cookie.name.downcase %>;<% end %>
+    default:
+      return null; // TODO: Throw exception
+    }
+  }
+
+  public static boolean has(int id) {
+    switch(id){<% protocol.cookies.each do |cookie| %>
+    case <%= cookie.name.upcase %>_ID:
+      return _<%= cookie.name.downcase %> != null;<% end %>
+    default:
+      return false;
+    }
+  }
+
+  public static void clean() {
+    int current_time = (int) (System.currentTimeMillis() / 1000L);<%
+
+  protocol.cookies.each do |cookie| %>
+    if (_<%= cookie.name.downcase %> != null && _<%= cookie.name.downcase %>.expiration < current_time) {
+      _<%= cookie.name.downcase %> = null;
+    }<% end %>
+  }
+}

@@ -1,0 +1,20 @@
+# User changelog #
+
+### v0.6.1
+
+* Remove unneeded operations causing failure in some cases.
+
+### v0.6.0-rc0
+
+* Added the "multiple" option to shots.
+* Changed the API to start a sequence from the device.
+    * the global sequence controller no longer defines how to retrieve the controller of sequences started by the device
+    * the dispatcher takes an additional parameter when starting a sequence: the controller instance
+* Added the "out_of_sequence_callback" callback.
+* Bug fixes & some code refactoring.
+* Removed the "user_callback_directory" configuration option for the server.
+
+### v0.5.0-rc1
+
+* First usable release
+

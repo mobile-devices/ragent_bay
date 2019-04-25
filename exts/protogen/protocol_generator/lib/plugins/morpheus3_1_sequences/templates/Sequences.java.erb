@@ -1,0 +1,323 @@
+package <%= protocol_set.config.get(:java, :package_name)%>;
+
+import java.io.IOException;
+import com.mdi.tools.helpers.messagegate.MessageGateHelper;
+import com.mdi.tools.helpers.messagegate.Message;
+import com.mdi.tools.helpers.messagegate.Query;
+import com.mdi.tools.std.BuffRef;
+import com.mdi.tools.std.IntRef;
+import com.mdi.tools.std.LongRef;
+import com.mdi.tools.dbg.Debug;
+import com.mdi.tools.helpers.dbg.DebugHelper;
+import com.mdi.tools.helpers.messagegate.policies.ReplyPolicy;
+import <%= protocol_set.config.get(:java, :package_name)%>.Codec.CorruptedMessage;
+import <%= protocol_set.config.get(:java, :package_name)%>.Codec.UnknownMessage;
+import <%= protocol_set.config.get(:java, :package_name)%>.Codec.InvalidProtocolVersion;
+import com.mdi.tools.sys.Time;
+
+import <%= protocol_set.config.get(:java, :package_name)%>.ProtogenMessages;
+
+public class Sequences {
+
+  <% protocol.sequences.each do |seq| -%>
+  public static class <%= seq.name %> {
+
+    private I<%= seq.name%>Controller _controller;
+    private DebugHelper _dbg;
+    private MessageGateHelper _msgHelper;
+
+    public <%= seq.name %>(MessageGateHelper msgHelper, I<%= seq.name%>Controller controller, DebugHelper dbg) {
+      _controller = controller;
+      _dbg = dbg;
+      _msgHelper = msgHelper;
+    }
+
+    <%- if seq.first_shot.way == :to_server -%>
+    public void start(MDIMessages.<%= seq.first_shot.message_type.name %> msg) {
+      _dbg.debug("Protogen: starting sequence <%= seq.name %>");
+      try {
+        <%= seq.first_shot.name %>Wrapper shot = new <%= seq.first_shot.name %>Wrapper(msg, _controller, _dbg, this);
+        _msgHelper.send(shot);
+      } catch (IOException e) {
+        abort("Protogen: can not start sequence <%= seq.name %> because of an error when encoding the shot <%= seq.first_shot.name %>: " + e.getMessage());
+      }
+    }
+    <%- end -%>
+
+    <%- if seq.first_shot.way == :to_device -%>
+    public void continueFromServer(MDIMessages.<%= seq.first_shot.message_type.name %> msg) {
+    <%- if seq.first_shot.last? -%>
+      _controller.<%= seq.first_shot.callback(:received_callback) -%>(msg);
+    <%- else -%>
+      MDIMessages.AbstractMessage response = _controller.<%= seq.first_shot.callback(:received_callback) -%>(msg);
+      continue<%= seq.first_shot.name.capitalize %>(response);
+    <%- end -%>
+    }
+    <%- end -%>
+
+    <%- seq.shots(:to_device).each do |shot| -%>
+    <%- next if shot.last? -%>
+    /**
+     * The shot <%= shot.name %> was sent to the device. In response to this shot, send the message given as a parameter.
+     * This method figures out which shot to send next using the type of the given parameter.
+     * @param msg message to send to the server.
+     */
+    private void continue<%= shot.name.capitalize %>(MDIMessages.AbstractMessage msg) {
+      try {
+        <%- shot.next_shots.each do |next_shot| -%>
+        if(msg instanceof MDIMessages.<%= next_shot.message_type.name %>) {
+          <%= next_shot.name %>Wrapper shot = new <%= next_shot.name %>Wrapper((MDIMessages.<%= next_shot.message_type.name %>) msg, _controller, _dbg, this);
+          _msgHelper.send(shot);
+        } else <%- end -%> {
+          _dbg.error("Protogen: the callback for shot <%= shot.name %> returned an invalid message type: ", msg.getClass().getSimpleName());
+        }
+      } catch (IOException e) {
+        abort("Protogen: can not continue sequence <%= seq.name %> because of an error when encoding the response to <%= shot.name %>: " + e.getMessage());
+      }
+    }
+    <%- end -%>
+
+    /**
+     * Aborts the current sequence. Displays an error in the logs and calls the user callback if defined.
+     * Means that the current sequence is terminated, will be called whatever the reason for this is (after other relevant callbacks)
+     * @param info will be displayed in the log as an error
+     */
+    public void abort(String info) {
+      _dbg.warn(info);
+      <%- if seq.has_callback?(:aborted_callback) -%>
+      _controller.<%= seq.callback(:aborted_callback) %>();
+      <%- else -%>
+      _dbg.warn("Protogen: no user defined callback when sequence <%= seq.name %> is aborted.");
+      <%- end -%>
+    }
+
+    // ------- shots -------
+
+    <%- seq.shots(:to_server).each do |shot|
+        type = if shot.last? then "Message" else "Query" end -%>
+    private static class <%= shot.name %>Wrapper extends <%= type %> <% if type == 'Query' %>implements ReplyPolicy<% end %> {
+
+      private int _sentAt;
+      private I<%= seq.name %>Controller _controller;
+      private DebugHelper _dbg;
+      private int _receivedCount;
+      private int _treatedCount;
+      private MDIMessages.AbstractMessage _lastResponse = null;
+      private <%= seq.name %> _sequence;
+      <% if shot.has_retry_policy? && !shot.retry_policy.infinite_attempts? -%>private int _attempts = 0;<%- end %>
+
+      public <%= shot.name %>Wrapper(MDIMessages.<%= shot.message_type.name %> msg, I<%= seq.name %>Controller controller, DebugHelper dbg, <%= seq.name %> sequence) throws IOException {
+        <%- if type == 'Query' -%>
+        super(-1, Codec.encode(msg, <%= seq.id %>, <%= shot.id %>), <%= shot.timeout(:send) %> * 1000, <%= shot.timeout(:receive) %> * 1000);
+        <%- else -%>
+        super(-1, Codec.encode(msg, <%= seq.id %>, <%= shot.id %>), <%= shot.timeout(:send) %> * 1000, true);
+        <%- end -%>
+        _receivedCount = 0;
+        _treatedCount = 0;
+        _sequence = sequence;
+        _dbg = dbg;
+        _controller = controller;
+        <%- if type == 'Query' %>setReplyPolicy(this);<% end %>
+      }
+
+      <%- if type == 'Query' -%>
+      public int waitForMoreReplies(BuffRef data, IntRef timestamp) {
+        try {
+          _lastResponse = Codec.decode(data);
+        } catch (CorruptedMessage e) {
+          abort("Protogen: received corrupted message in shot <%= shot.name %> sequence <%= seq.name %>" + e.getMessage());
+          return -1;
+        } catch (UnknownMessage e) {
+          abort("Protogen: received unknown message in shot <%= shot.name %> sequence <%= seq.name %>" + e.getMessage());
+          return -1;
+        } catch (InvalidProtocolVersion e) {
+          abort("Protogen: received unknown message in shot <%= shot.name %> sequence <%= seq.name %>" + e.getMessage());
+          return -1;
+        }
+
+        if (_lastResponse ==  null) {
+          abort("Protogen: received empty message in shot <%= shot.name %> sequence <%= seq.name %>");
+          return -1;
+        }
+
+        if (_lastResponse.isPartial()) {
+          _dbg.debug("Protogen (sequence <%= seq.name %>): partial message received, wait for the rest of the message. Info: ", _lastResponse.toString());
+          return <%= shot.timeout(:receive) %> - (Time.getUpTime() - _sentAt);
+        } else {
+          _receivedCount++;
+          if(_receivedCount == _lastResponse.protogenMessageCount || _lastResponse.protogenMessageCount < 0) {
+            _dbg.debug("Protogen (sequence <%= seq.name %>): all responses for shot <%= shot.name %> received");
+            return -1;
+          } else {
+            return <%= shot.timeout(:receive) %> - (Time.getUpTime() - _sentAt);
+          }
+        }
+      }
+      <% end %>
+
+      <%- if type == 'Query' -%>
+      @Override
+      protected void onReply(BuffRef data, IntRef arg1, long arg2) {
+        if (_lastResponse.isPartial()) {
+          return;
+        }
+        // sanity check
+        if(_lastResponse.protogenSequenceId != <%= seq.id %>) {
+          _sequence.abort("Protogen (sequence <%= seq.name %>): unexpected sequence ID " + _lastResponse.protogenSequenceId + " (expected <%= seq.id %>), probably a server-side error. This is a bug.");
+        }
+        _dbg.debug("Protogen (sequence <%= seq.name %>): got reply of type ", _lastResponse.getClass().getSimpleName(), " to the shot <%= shot.name %>");
+        // figure which shot is the next shot (next shot here being from the server to the device)
+        // one could also use the decoded shot_id but the (generated) code would be less readable
+        <%- shot.next_shots.each do |next_shot| -%>
+        if(_lastResponse instanceof MDIMessages.<%= next_shot.message_type.name %>) {
+          // sanity check
+          if(_lastResponse.protogenShotId != <%= next_shot.id %>) {
+            _sequence.abort("Protogen (sequence <%= seq.name %> shot <%= shot.name %>): unexpected shot ID " + _lastResponse.protogenSequenceId + " (expected <%= next_shot.id %>)), probably a server-side error. This is a bug.");
+            return;
+          }
+          <%- unless next_shot.last? -%>
+          MDIMessages.AbstractMessage nextMsg = null;
+          <%- end -%>
+          <%- if next_shot.multiple? -%>
+          _controller.<%= next_shot.callback(:received_callback) %>((MDIMessages.<%= next_shot.message_type.name %>) _lastResponse, _lastResponse.protogenMessageId, _lastResponse.protogenMessageCount);
+          ++_treatedCount;
+          if(_treatedCount == _lastResponse.protogenMessageCount) {
+            <%- if next_shot.last? -%>
+            _controller.<%= next_shot.callback(:all_received_callback) %>();
+            return;
+            <%- else -%>
+            nextMsg = _controller.<%= next_shot.callback(:all_received_callback) %>();
+            <%- end -%>
+          }
+          <%- else -%>
+            <%- if next_shot.last? -%>
+          _controller.<%= next_shot.callback(:received_callback) %>((MDIMessages.<%= next_shot.message_type.name %>) _lastResponse);
+            <%- else -%>
+          nextMsg =_controller.<%= next_shot.callback(:received_callback) %>((MDIMessages.<%= next_shot.message_type.name %>) _lastResponse);
+            <%- end -%>
+          <%- end -%>
+          <%- unless next_shot.last? -%>
+          if(nextMsg == null) {
+            _sequence.abort("Protogen: callback returned null, aborting sequence <%= seq.name %>");
+            return;
+          }
+          _sequence.continue<%= next_shot.name.capitalize %>(nextMsg);
+          return;
+          <%- end -%>
+        } else <%- end -%> {
+          if(_lastResponse instanceof ProtogenMessages.ServerError) {
+            _sequence.abort("Protogen (sequence <%= seq.name %>): the server notified of a server-side error: " + ((ProtogenMessages.ServerError)_lastResponse).getInfoMessage());
+            return;
+          } else {
+            _sequence.abort("Protogen (sequence <%= seq.name %>): the server callback for shot <%= shot.name %> returned an invalid response type: " + _lastResponse.getClass().getSimpleName());
+            return;
+          }
+        }
+      } // onReply
+      <%- end -%>
+
+      /**
+       * If the shot has a retry policy, then the shot will
+       * be aborted only if there are no attempts left
+       */
+      private void abort(String msg) {
+        <%- if shot.has_retry_policy? -%>
+          <%- unless shot.retry_policy.infinite_attempts? -%>
+        if(_attempts > <%= shot.retry_policy.attempts %>) {
+          _sequence.abort(msg);
+          return;
+        }
+          <%- end -%>
+        try {
+          _dbg.debug("Protogen: will try to send again the message <%= shot.message_type.name %> in <%= shot.retry_policy.delay %> seconds.");
+          <%- unless shot.retry_policy.infinite_attempts? -%>
+          _dbg.print("Protogen: attempt ", _attempts " of <%= shot.retry_policy.attempts %>");
+          <%- end -%>
+          _lastResponse = null;
+          Thread.sleep(<%= shot.retry_policy.delay %> * 1000);
+          _receivedCount = 0;
+          _treatedCount = 0;
+          _msgHelper.send(this);
+          <% unless shot.retry_policy.infinite_attempts? %>_attempts++;<% end %>
+        } catch (InterruptedException e) {
+          Thread.currentThread().interrupt();
+        }
+        <%- else -%>
+        _sequence.abort(msg);
+        <%- end -%>
+      }
+
+      <%- if type == 'Query' -%>
+      @Override
+      public void onReplyComplete() {
+        _dbg.debug("Protogen: shot <%= shot.name %> complete.");
+      }
+      <%- end -%>
+
+      @Override
+      protected void onAckTimeOut() {
+        <%- if shot.has_callback?(:ack_timeout_callback) -%>
+        _controller.<%= shot.callback(:ack_timeout_callback) %>();
+        <%- else -%>
+        _dbg.warn("Protogen: a message sent did not receive the server ACK in time. No user defined callback configured for this.");
+        <%- end -%>
+        abort("Protogen: aborting sequence <%= seq.name %>");
+      }
+
+      @Override
+      protected void onCancel() {
+        <%- if shot.has_callback?(:cancel_callback) -%>
+        _controller.<%= shot.callback(:cancel_callback) %>();
+        <%- else -%>
+        _dbg.warn("Protogen: a message was cancelled before being sent. No user defined callback configured for this.");
+        <%- end -%>
+        abort("Protogen: aborting sequence <%= seq.name %>");
+      }
+
+      <%- if type == 'Query' -%>
+      @Override
+      protected void onResponseTimeOut() {
+        <%- if shot.has_callback?(:response_timeout_callback) -%>
+        _controller.<%= shot.callback(:response_timeout_callback) %>();
+        <%- else -%>
+        _dbg.warn("Protogen: no response was received for a message. No user defined callback configured for this.");
+        <%- end -%>
+        abort("Protogen: aborting sequence <%= seq.name %>");
+      }
+      <%- end -%>
+
+      @Override
+      protected void onSendSucceed() {
+        _sentAt = Time.getUpTime();
+        <%- if shot.has_callback?(:send_success_callback) -%>
+        _controller.<%= shot.callback(:send_success_callback) %>();
+        <%- end -%>
+      }
+
+      @Override
+      protected void onSendTimeOut() {
+        <%- if shot.has_callback?(:send_timeout_callback) -%>
+        _controller.<%= shot.callback(:send_timeout_callback) %>();
+        <%- else -%>
+        _dbg.warn("Protogen: A message was not sent (timeout send). No user defined callback configured for this.");
+        <%- end -%>
+        abort("Protogen: aborting sequence <%= seq.name %>");
+      }
+
+      @Override
+      protected void onServerNAck() {
+        <%- if shot.has_callback?(:server_nack_callback) -%>
+        _controller.<%= shot.callback(:server_nack_callback) %>();
+        <%- else -%>
+        _dbg.warn("Protogen: Server NACK received. No user defined callback configured for this.");
+        <%- end -%>
+        abort("Protogen: aborting sequence <%= seq.name %>");
+      }
+
+    }
+    <% end %>
+  }
+
+  <%- end -%>
+
+}

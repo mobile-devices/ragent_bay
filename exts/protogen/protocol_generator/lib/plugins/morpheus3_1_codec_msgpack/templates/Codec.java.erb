@@ -1,0 +1,190 @@
+package <%= protocol_set.config.get(:java, :package_name)%>;
+
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import org.msgpack.MessagePack;
+import org.msgpack.template.Template;
+import org.msgpack.unpacker.Unpacker;
+import org.msgpack.type.ArrayValue;
+import org.msgpack.type.Value;
+import static org.msgpack.template.Templates.TString;
+import static org.msgpack.template.Templates.TValue;
+import static org.msgpack.template.Templates.tMap;
+import java.io.UnsupportedEncodingException;
+
+import com.mdi.tools.std.BuffRef;
+
+import <%= protocol_set.config.get(:java, :package_name)%>.ProtogenMessages;
+
+<% if protocol.has_cookies? %>import <%= protocol_set.config.get(:java, :package_name)%>.CookieJar.StoredCookie;<% end %>
+import <%= protocol_set.config.get(:java, :package_name)%>.MDIMessages;
+
+public class Codec {
+
+  public static final String PROTOCOL_VERSION = "<%= protocol.version_string %>";
+  public static final String PG_VERSION = "<%= protocol_set.config.get(:global, :pg_version) %>";
+
+  public static class UnknownMessage extends Exception {
+    public UnknownMessage(String message) {
+      super(message);
+    }
+  }
+
+  public static class CorruptedMessage extends Exception {
+    public CorruptedMessage(String message) {
+      super(message);
+    }
+  }
+
+  public static class InvalidProtocolVersion extends Exception {
+    public InvalidProtocolVersion(String message) {
+      super(message);
+    }
+  }
+<% if protocol.has_cookies? %>
+
+  public static CookieJar.StoredCookie toStoredCookie(Value value) {
+    ArrayValue tab = value.asArrayValue();
+    BuffRef content = new BuffRef(tab.get(0).asRawValue().getByteArray());
+    BuffRef signature = new BuffRef(tab.get(1).asRawValue().getString());
+    int expiration = tab.get(2).asIntegerValue().getInt();
+    return new CookieJar.StoredCookie(content, signature, expiration);
+  }
+
+  public static List<Object> toList(StoredCookie sc) {
+    List<Object> list = new ArrayList<Object>();
+    list.add(sc.content.getBytes());
+    list.add(sc.signature.toString());
+    list.add(sc.expiration);
+    return list;
+  }<% end %>
+
+  public static MDIMessages.AbstractMessage decode(BuffRef message)
+    throws CorruptedMessage, UnknownMessage, InvalidProtocolVersion {
+
+    final MessagePack msgpack = new MessagePack();
+    final ByteArrayInputStream in = new ByteArrayInputStream(message.getBytes());
+    final Unpacker unpacker = msgpack.createUnpacker(in);
+
+    final Template<Map<String, Value>> requestTmpl = tMap(TString, TValue);
+    Map<String, Value> wrap;
+    try {
+      wrap = unpacker.read(requestTmpl);
+    } catch (IOException e) {
+      e.printStackTrace();
+      return null;
+    }
+
+    if (wrap == null)
+      return null;
+
+    // "h" presence means this is a partial message
+    if (wrap.containsKey("h")) {
+      String messageHash = wrap.get("h").asRawValue().getString();
+      int messageFraction = wrap.get("f").asIntegerValue().getInt();
+      int totalParts = wrap.get("t").asIntegerValue().getInt();
+      byte[] partContent = wrap.get("m").asRawValue().getByteArray();
+      // int id = wrap.get("i").asRawValue().getByteArray(); // would be useful for integrity check (see how the Ruby codec behave)
+
+      Map<Integer, byte[]> otherMessageParts = Splitter.getStoredParts(messageHash);
+      if (otherMessageParts.size() + 1 == totalParts) {
+        otherMessageParts.put(messageFraction, partContent);
+        return decode(Splitter.assemble(otherMessageParts, messageHash));
+      } else {
+        Splitter.put(partContent, messageHash, messageFraction);
+        return new ProtogenMessages.PartialMessage(messageHash,  messageFraction, totalParts);
+      }
+    }
+    String received_version = "none";
+    try {
+      received_version = new String(wrap.get("v").asRawValue().getByteArray(), "UTF-8");
+    } catch (UnsupportedEncodingException e) {
+      throw new UnknownMessage("UTF-8 encoding not supported, can not decode the received version");
+    }
+
+    if (!received_version.equals(PROTOCOL_VERSION)) {
+      throw new InvalidProtocolVersion("Invalid protocol versions: actual " + PROTOCOL_VERSION + " / received " + received_version);
+    }
+
+<%
+    if protocol.has_cookies?
+      protocol.cookies.each do |cookie|
+%>
+    if (wrap.containsKey("_<%= cookie.name %>")) {
+      CookieJar.set(CookieJar.<%= cookie.name.upcase %>_ID, toStoredCookie(wrap.get("_<%= cookie.name %>")));
+    }<%
+    end
+  end
+%>
+
+    switch(wrap.get("type").asIntegerValue().getInt())
+    {<% protocol.messages(:receivable_from, :device).each do |msg|%>
+      case MDIMessages.ID_<%= msg.name.upcase %>:
+        return new MDIMessages.<%= msg.name %>(wrap.get("msg").asMapValue());<% end %>
+      case ProtogenMessages.ID_SERVER_ERROR:
+        return new ProtogenMessages.ServerError(wrap.get("msg").asMapValue());
+      default:
+        throw new UnknownMessage("Unknown type" + wrap.get("type").asRawValue().getString() +".");
+    }
+  }
+
+  public static BuffRef encode(MDIMessages.AbstractMessage msg, int sequenceId, int shotId) throws IOException {
+    ArrayList<BuffRef> b = encodeSplit(msg, sequenceId, shotId, false);
+    if (b != null)
+      return b.get(0);
+    return null;
+  }
+
+  public static ArrayList<BuffRef> encodeSplit(MDIMessages.AbstractMessage msg, int sequenceId, int shotId, boolean enableSplit) throws IOException {
+    msg.protogenSequenceId = sequenceId;
+    msg.protogenShotId = shotId;
+
+    HashMap<String,Object> hm = new HashMap<String,Object>();
+    hm.put("v", PROTOCOL_VERSION);
+    hm.put("type", msg.protogenMessageId);
+    hm.put("msg", msg.toHash());
+    <%- if protocol.has_cookies? -%>
+
+    CookieJar.clean();<% protocol.cookies.each do |cookie| %>
+    if (msg.hasCookie(CookieJar.<%= cookie.name.upcase %>_ID)) {
+      if (CookieJar.has(CookieJar.<%= cookie.name.upcase %>_ID)) {
+        hm.put("_<%= cookie.name %>", Codec.toList(CookieJar.get(CookieJar.<%= cookie.name.upcase %>_ID)));
+      }
+    }<% end -%>
+    <%- end -%>
+
+    try {
+      final MessagePack msgpack = new MessagePack();
+      byte[] encMsg = msgpack.write(hm);
+      if (encMsg.length > <%= protocol_set.config.get(:java, :max_message_size) %>) {
+        throw new IOException("Protogen: message size too big (size: " + encMsg.length + " bytes, max: <%= protocol_set.config.get(:java, :max_message_size) %> bytes.");
+      }
+      ArrayList<BuffRef> output = new ArrayList<BuffRef>();
+      if (enableSplit && encMsg.length > <%= protocol_set.config.get(:java, :message_part_size) %>) {
+        ArrayList<byte[]> parts = Splitter.split(encMsg, <%= protocol_set.config.get(:java, :message_part_size) %>);
+        HashMap<String, Object> tempHm = new HashMap<String, Object>();
+        int i = 0;
+        for (byte[] p : parts) {
+          tempHm.put("m", ByteBuffer.wrap(p));
+          tempHm.put("h", Splitter.computeHash(p));
+          tempHm.put("f", i);
+          tempHm.put("t", parts.size());
+          output.add(new BuffRef(msgpack.write(tempHm)));
+          ++i;
+        }
+      } else {
+        output.add(new BuffRef(encMsg));
+      }
+      return output;
+    } catch (final IOException e) {
+      e.printStackTrace();
+    }
+    return null;
+  }
+}

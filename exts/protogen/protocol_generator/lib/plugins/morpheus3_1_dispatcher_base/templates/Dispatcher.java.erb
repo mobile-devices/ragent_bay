@@ -1,0 +1,116 @@
+package <%= protocol_set.config.get(:java, :package_name)%>;
+
+import java.io.IOException;
+import com.mdi.services.binaryGate.BinaryGate;
+import com.mdi.services.messageGate.MessageGate;
+import com.mdi.tools.std.BuffRef;
+import com.mdi.tools.std.IntRef;
+import com.mdi.tools.std.LongRef;
+import com.mdi.tools.dbg.Debug;
+import com.mdi.tools.helpers.dbg.DebugHelper;
+import com.mdi.tools.helpers.messagegate.IndependantMessageHandler;
+import com.mdi.tools.helpers.messagegate.Message;
+import com.mdi.tools.helpers.messagegate.MessageGateHelper;
+
+import <%= protocol_set.config.get(:java, :package_name)%>.Codec.UnknownMessage;
+
+public class Dispatcher implements IndependantMessageHandler {
+
+  public static final String PROTOCOL_VERSION = "<%= protocol.version_string %>";
+  public static final String PG_VERSION = "<%= protocol_set.config.get(:global, :pg_version) %>";
+
+  private DebugHelper _dbg = null;
+  private ISequenceController _controller = null;
+  private MessageGate _msggate = null;
+  private BinaryGate _bgate = null;
+  private MessageGateHelper _messageGateHelper  = null;
+
+  public Dispatcher(String channel, MessageGate msggate, BinaryGate bgate, ISequenceController controller, DebugHelper dbg) {
+    _dbg = dbg;
+    _bgate = bgate;
+    _msggate = msggate;
+    _controller = controller;
+    MessageGateHelper.Builder builder = new MessageGateHelper.Builder(_msggate, -1, false, channel);
+    _messageGateHelper = builder.setIndependantMessageHandler(this).setDebugger(dbg).build();
+  }
+
+  // Sequences starter
+  <%- protocol.sequences(:first_shot, :to_server).each do |seq| -%>
+  public void start<%= seq.name %>Sequence(MDIMessages.<%= seq.shot(:first).message_type.name %> msg, I<%= seq.name %>Controller controller) {
+     new Sequences.<%= seq.name %>(_messageGateHelper, controller, _dbg).start(msg);
+  }<% end %>
+
+  public boolean processMessage(BuffRef data, IntRef timestamp, LongRef refMessageId, long serverMsgId) {
+    try {
+      MDIMessages.AbstractMessage message = Codec.decode(data);
+      if (message == null) {
+        _dbg.error("Protogen: received message could not be decoded.");
+        return false;
+      }
+
+      if (message.isPartial()) {
+        _dbg.print("Protogen: partial message received, wait for the rest of the message. Info: ", message.toString());
+        return true;
+      }
+      _dbg.debug("Protogen: received and decoded a message of type ", message.getClass(), ".");
+      // retrieve the correct sequence
+      switch(message.protogenSequenceId) {
+      <%- protocol.sequences.each do |seq| -%>
+      case <%= seq.id %>: // <%= seq.name %>
+        <%- if seq.first_shot.way == :to_device -%>
+        if(message.protogenShotId == <%= seq.first_shot.id %>) {
+          new Sequences.<%= seq.name %>(_messageGateHelper, _controller.get<%= seq.name %>Controller(), _dbg).continueFromServer((MDIMessages.<%= seq.first_shot.message_type.name %>) message);
+          return true;
+        } else {
+        <%- end -%>
+          <%- if protocol.has_callback?(:out_of_sequence_callback) -%>
+          // figure out which shot it is
+          switch(message.protogenShotId) {
+            <%- seq.shots.each do |shot| %>
+          case <%= shot.id %>: // <%= shot.name %>
+            _controller.<%= protocol.callback(:out_of_sequence_callback) %>(message, Sequence.<%= seq.name.upcase %>, Shot.<%= seq.name.upcase %>_<%= shot.name.upcase %>);
+            return false;
+            <%- end -%>
+          default:
+            _controller.<%= protocol.callback(:out_of_sequence_callback) %>(message, Sequence.<%= seq.name.upcase %>, Shot.UNKNOWN);
+            return false;
+          }
+          <%- else -%>
+          _dbg.warn("Protogen: received a message for sequence <%= seq.name %> that is not part of a currently running sequence, dropping it");
+          return false;
+          <%- end -%>
+        <%- if seq.first_shot.way == :to_device -%>}<% end %>
+       <%- end -%>
+        default:
+          <%- if protocol.has_callback?(:out_of_sequence_callback) -%>
+          _controller.<%= protocol.callback(:out_of_sequence_callback) %>(message, Sequence.UNKNOWN, Shot.UNKNOWN);
+          return false;
+          <%- else -%>
+          _dbg.warn("Protogen: received a message that is not part of a currently running sequence, dropping it");
+          return false;
+          <%- end -%>
+      }
+    } catch (Codec.UnknownMessage e) {
+      _dbg.error("Protogen encountered an error when decoding a message: the decoded message is of a type not declared in the protocol file. Aborting.");
+      _dbg.error(e.getMessage());
+      <% if protocol.has_callback?(:generic_error_callback) %>
+      _controller.<%= protocol.callback(:generic_error_callback) %>();
+      <% end %>
+      return false;
+    } catch (Codec.CorruptedMessage e) {
+      _dbg.error("Protogen: corrupted message, aborting.");
+      _dbg.error(e.getMessage());
+      <% if protocol.has_callback?(:generic_error_callback) %>
+      _controller.<%= protocol.callback(:generic_error_callback) %>();
+      <% end %>
+      return false;
+    } catch (Codec.InvalidProtocolVersion e) {
+      _dbg.error("Protogen: protocol version mismatch. Aborting.");
+      _dbg.error(e.getMessage());
+      <% if protocol.has_callback?(:generic_error_callback) %>
+      _controller.<%= protocol.callback(:generic_error_callback) %>();
+      <% end %>
+      return false;
+    }
+  }
+}

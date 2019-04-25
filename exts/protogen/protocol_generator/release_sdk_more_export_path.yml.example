@@ -1,0 +1,4 @@
+device:
+  - ""
+server:
+  - "/media/demomp_x/xwarmdi/workServ/SDK/ruby-agents-sdk/web_shell/local_cloud/ragent_bay/exts/protogen/protocol_generator"

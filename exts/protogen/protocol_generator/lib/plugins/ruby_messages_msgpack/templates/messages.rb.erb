@@ -75,7 +75,6 @@ module Protogen_<%= protocol_set.config.get(:ruby, :agent_name) %>
                 new_value.each do |item|
                   raise TypeError.new("The attribute '<%= field.name %>' of a '<%= msg.name %>' must be an array of <%= MSGPACK2RUBY[field.type.name] %> (an element in the given array was a '#{item.class.to_s}')") unless item.is_a?(<%= MSGPACK2RUBY[field.type.name] %>) <% unless field.required %>|| new_value.nil?<% end %>
                 end
-
                 <% elsif field.type.name == "bool" %>
             raise TypeError.new("The attribute '<%= field.name %>' of a '<%= msg.name %>' must be a Boolean (got #{new_value.class.to_s})") unless new_value.is_a?(TrueClass) || new_value.is_a?(FalseClass) <% unless field.required %>|| new_value.nil?<% end %>
                 <% elsif field.type.name == "bytes"-%>
@@ -83,7 +82,6 @@ module Protogen_<%= protocol_set.config.get(:ruby, :agent_name) %>
                 <% else -%>
             raise TypeError.new("The attribute '<%= field.name %>' of a '<%= msg.name %>' must be <%= MSGPACK2RUBY[field.type.name] %> (got #{new_value.class.to_s})") unless new_value.is_a?(<%= MSGPACK2RUBY[field.type.name] %>) <% unless field.required %>|| new_value.nil?<% end %>
                 <%- end -%>
-            @<%= field.name -%> = new_value
               <%- when *protocol.messages
                 if field.array? -%>
                 raise TypeError.new("The attribute '<%= field.name %>' of a '<%= msg.name %>' must be an array of <%= field.type.name %> (the provided parameter does not respond to 'each')") unless new_value.respond_to?(:each) <% unless field.required %>|| new_value.nil?<% end %>
@@ -92,14 +90,11 @@ module Protogen_<%= protocol_set.config.get(:ruby, :agent_name) %>
                end
                 <%- else -%>
             raise TypeError.new("The attribute '<%= field.name %>' of a '<%= msg.name %>' must be a <%= field.type.name %> (got #{new_value.class.to_s})") unless new_value.is_a?(<%= field.type.name %>) <%unless field.required %>|| new_value.nil?<% end %>
-            @<%= field.name -%> = new_value
                 <%- end
               else
                 raise "Unknown type of field: #{field.type.name}"
               end -%>
-            <%- if field.array? -%>
             @<%= field.name -%> = new_value
-            <%- end -%>
           end
           <% end %>
 

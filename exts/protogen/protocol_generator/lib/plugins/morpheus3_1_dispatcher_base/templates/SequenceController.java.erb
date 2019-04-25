@@ -1,0 +1,22 @@
+package <%= protocol_set.config.get(:java, :package_name)%>;
+
+
+/**
+ * Protogen uses this interface to retrieve a controller for a new sequence started by the server.
+ */
+public interface ISequenceController {
+
+  <%- protocol.sequences(:first_shot, :to_device).each do |seq| -%>
+  public I<%= seq.name %>Controller get<%= seq.name %>Controller();
+  <%- end -%>
+
+  <%- if protocol.has_callback?(:generic_error_callback) -%>
+  public void <%= protocol.callback(:generic_error_callback) %>();
+  <%- end -%>
+
+  <%- if protocol.has_callback?(:out_of_sequence_callback) -%>
+  public void <%= protocol.callback(:out_of_sequence_callback) %>(MDIMessages.AbstractMessage msg, Sequence seq, Shot shot);
+  <%- end -%>
+
+}
+

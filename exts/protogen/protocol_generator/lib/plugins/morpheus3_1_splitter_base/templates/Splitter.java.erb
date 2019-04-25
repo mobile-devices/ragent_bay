@@ -1,0 +1,120 @@
+package <%= protocol_set.config.get(:java, :package_name)%>;
+
+import java.util.Map;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.security.MessageDigest;
+import java.util.Arrays;
+import java.util.ArrayList;
+import com.mdi.tools.std.BuffRef;
+import java.security.NoSuchAlgorithmException;
+
+/**
+ * An utility to split large messages into several small ones and assemble received message parts.
+ */
+public class Splitter {
+
+  private static class PartialMessage {
+
+    private long _timestamp = -1; /**< last time the partial message was modified */
+    private Map<Integer, byte[]> _parts = null;
+
+    public PartialMessage() {
+      _parts = new HashMap<Integer, byte[]>();
+      _timestamp = System.currentTimeMillis();
+    }
+
+    public synchronized void addPart(int partNumber, byte[] data) {
+      _parts.put(partNumber, data);
+      _timestamp = System.currentTimeMillis();
+    }
+
+    public synchronized Map<Integer, byte[]> getParts() {
+      return _parts;
+    }
+
+    public synchronized long getTimestamp() {
+      return _timestamp;
+    }
+  }
+
+  private static class PartsCache extends LinkedHashMap<String, PartialMessage> {
+
+    @Override
+    protected boolean removeEldestEntry(Map.Entry<String, PartialMessage> eldest) {
+      return eldest.getValue().getTimestamp() + <%= protocol_set.config.get(:java, :message_part_expiration_duration) %> * 1000 < System.currentTimeMillis();
+    }
+  }
+
+  private static PartsCache _partialMessages = new PartsCache();
+
+  public static synchronized Map<Integer, byte[]> getStoredParts(String messageHash) {
+    PartialMessage pm = _partialMessages.get(messageHash);
+    if (pm == null) {
+      return new HashMap<Integer, byte[]>();
+    } else {
+      return pm.getParts();
+    }
+  }
+
+  public static synchronized void put(byte[] partContent, String messageHash, int messageFraction) {
+    PartialMessage pm = _partialMessages.get(messageHash);
+    if(pm == null) {
+      pm = new PartialMessage();
+    }
+    pm.addPart(messageFraction, partContent);
+    _partialMessages.put(messageHash, pm);
+  }
+
+  public static String computeHash(byte[] data) {
+    String result = "";
+    try {
+      byte[] hash = MessageDigest.getInstance("SHA-1").digest(data);
+      for ( byte b : hash )
+        result += Integer.toHexString(b + 256);
+    } catch (NoSuchAlgorithmException e) {
+      e.printStackTrace();
+    }
+    return result;
+  }
+
+  public static BuffRef assemble(Map<Integer, byte[]> otherMessageParts, String messageHash) throws Codec.CorruptedMessage {
+    return assemble(otherMessageParts, messageHash, true);
+  }
+
+  public static synchronized BuffRef assemble(Map<Integer, byte[]> otherMessageParts, String messageHash, boolean deleteParts) throws Codec.CorruptedMessage {
+    if (deleteParts) {
+      _partialMessages.remove(messageHash);
+    }
+
+    ByteArrayOutputStream completeMessage = new ByteArrayOutputStream();
+    for (int i = 0; i < otherMessageParts.size(); i++) {
+      try {
+        completeMessage.write(otherMessageParts.get(i));
+      } catch (IOException e) {
+        throw new Codec.CorruptedMessage("IOException on message part " + i);
+      }
+    }
+
+    if (!messageHash.equals(computeHash(completeMessage.toByteArray()))) {
+      throw new Codec.CorruptedMessage("message Hash does not correpsond");
+    }
+
+    return new BuffRef(completeMessage.toByteArray());
+  }
+
+  public static ArrayList<byte[]> split(byte[] message, int lengthLimit) {
+    ArrayList<byte[]> parts = new ArrayList<byte[]>();
+
+    for (int partNum = 0; partNum * lengthLimit < message.length; ++partNum) {
+      int beginRange = partNum*lengthLimit;
+      int endRange = ( beginRange+lengthLimit < message.length ? beginRange+lengthLimit : message.length);
+      parts.add(Arrays.copyOfRange(message, beginRange, endRange));
+    }
+
+    return parts;
+  }
+}

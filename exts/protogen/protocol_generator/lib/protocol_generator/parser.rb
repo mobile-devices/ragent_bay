@@ -27,8 +27,10 @@ module ProtocolGenerator
       protocol_set.config do
         set :java, :output_directory, hash_config['device_output_directory']
         set :ruby, :agent_name, hash_config['agent_name']
-        set :ruby, :max_message_size, hash_config['message_size_limit']
-        set :ruby, :message_part_size, hash_config['message_part_size']
+        set :ruby, :max_message_size, (hash_config['message_size_limit']? hash_config['message_size_limit'] : 1048576 )
+        set :java, :max_message_size, (hash_config['device_message_size_limit']? hash_config['device_message_size_limit'] : 1048576 )
+        set :ruby, :message_part_size, (hash_config['message_part_size']? hash_config['message_part_size'] : 32768)
+        set :java, :message_part_size, (hash_config['device_message_part_size']? hash_config['device_message_part_size'] : 32768)
         set :java, :output_path, hash_config['device_output_directory']
         set :ruby, :output_path, hash_config['server_output_directory']
         set :java, :temp_output_path, File.join(params['temp_output_directory'], "device")
@@ -39,7 +41,6 @@ module ProtocolGenerator
         set :java, :keep_source_path, hash_config['keep_java_source_path']
         set :global, :plugins, hash_config['plugins']
         set :global, :pg_version, hash_config['pg_version']
-        set :java, :max_message_size, hash_config['device_message_size_limit']
         set :java, :message_part_expiration_duration, hash_config['device_message_part_expiration_duration'] # in seconds
         set :ruby, :message_part_expiration_duration, hash_config['server_message_part_expiration_duration']
         set :ruby, :generate_documentation, hash_config['generate_ruby_documentation']

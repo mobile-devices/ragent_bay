@@ -1,0 +1,33 @@
+package <%= protocol_set.config.get(:java, :package_name)%>;
+
+import <%= protocol_set.config.get(:java, :package_name)%>.MDIMessages.*;
+import <%= protocol_set.config.get(:java, :package_name)%>.ProtogenMessages;
+
+public interface I<%= seq.name %>Controller {
+
+    <%- if seq.has_callback?(:aborted_callback) -%>
+    public void <%= seq.callback(:aborted_callback) %>();
+    <%- end -%>
+
+    <%- seq.shots.each do |shot|
+       %w(send_success_callback ack_timeout_callback cancel_callback response_timeout_callback send_timeout_callback server_nack_callback).select{ |cb| shot.has_callback?(cb.to_sym) }.each do |callback| -%>
+      public void <%= shot.callback(callback.to_sym) %>();
+      <%- end
+      if shot.has_callback?(:server_error_callback) -%>
+      public void <%= shot.callback(:server_error_callback) %>(ProtogenMessages.ServerError msg);
+      <%- end -%>
+
+    <%- if shot.way == :to_server then next; end;
+        return_type = if (shot.last? || shot.multiple?) then 'void' else 'MDIMessages.AbstractMessage' end -%>
+      <%- if shot.multiple? %>
+      public <%= return_type %> <%= shot.callback(:received_callback) %>(MDIMessages.<%= shot.message_type.name %> msg, int msgNumber, int totalMsgCount);
+      <%- else -%>
+       public <%= return_type %> <%= shot.callback(:received_callback) %>(MDIMessages.<%= shot.message_type.name %> msg);
+      <%- end -%>
+      <%- if shot.multiple?
+          return_type = if shot.last? then 'void' else 'MDIMessages.AbstractMessage' end -%>
+      public <%= return_type %> <%= shot.callback(:all_received_callback) %>();
+      <%- end -%>
+  <%- end -%>
+
+}

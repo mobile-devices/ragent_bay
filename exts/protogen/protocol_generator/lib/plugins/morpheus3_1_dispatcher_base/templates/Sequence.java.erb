@@ -1,0 +1,10 @@
+package <%= protocol_set.config.get(:java, :package_name)%>;
+
+<%- if protocol.has_callback?(:out_of_sequence_callback) -%>
+public enum Sequence {
+  <%- protocol.sequences.each do |seq| -%>
+  <%= seq.name.upcase %>,
+  <%- end -%>
+  UNKNOWN;
+}
+<%- else raise Error::ProtocolGenerationError.new("Shot enumeration is useless if the out_of_sequence_callback if not defined.") end -%>

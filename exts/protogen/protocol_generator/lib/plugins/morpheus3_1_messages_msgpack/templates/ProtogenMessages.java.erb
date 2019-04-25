@@ -1,0 +1,116 @@
+package <%= protocol_set.config.get(:java, :package_name)%>;
+
+import <%= protocol_set.config.get(:java, :package_name)%>.MDIMessages;
+
+import java.util.HashMap;
+import org.msgpack.type.MapValue;
+import org.msgpack.type.Value;
+
+import java.io.UnsupportedEncodingException;
+
+public class ProtogenMessages {
+
+  public static final int ID_SERVER_ERROR = -2;
+  public static final int ID_PARTIAL_MESSAGE = -3;
+
+  public static class PartialMessage extends MDIMessages.AbstractMessage {
+
+    private String _messageHash;
+    private int _partNumber;
+    private int _totalParts;
+
+    public PartialMessage(String messageHash, int partNumber, int totalParts) {
+      protogenMessageId = ProtogenMessages.ID_PARTIAL_MESSAGE;
+      protogenSequenceId = -1;
+      protogenShotId = -1;
+      _partNumber = partNumber; // warning, parts number are between 0 and totalParts - 1 (inclusive)
+      _totalParts = totalParts;
+      _messageHash = messageHash;
+    }
+
+    public boolean isPartial() {
+      return true;
+    }
+
+    public String toString() {
+      return "Partial message. Complete message hash: " + _messageHash + " (part " + (_partNumber + 1) + "/" + _totalParts + ")";
+    }
+
+    public boolean hasCookie(int i) {
+      return false;
+    }
+
+    public HashMap<String,Object> toHash() {
+      throw new RuntimeException("Can not convert to hash a partial message"); //todo(faucon_b): this should not be needed
+    }
+
+  }
+
+  /**
+   * A message automatically sent by Protogen when a user callback on the server raised an exception.
+   * Notify the device that it should not wait for a response.
+   */
+  public static class ServerError extends MDIMessages.AbstractMessage {
+
+    private String _info = null;
+
+    public ServerError() {
+      protogenMessageId = ProtogenMessages.ID_SERVER_ERROR;
+      protogenSequenceId = -1;
+      protogenShotId = -1;
+      _info = "No details available";
+    }
+
+    public ServerError(MapValue hm) {
+      this();
+      try {
+        String key = null;
+        for (java.util.Map.Entry<Value, Value> kv : hm.entrySet()) {
+          key = new String(kv.getKey().asRawValue().getByteArray(), "UTF-8");
+          if (key.equals("info")) {
+            _info = new String(kv.getValue().asRawValue().getByteArray(), "UTF-8");
+          } else if(key.equals("_s")) {
+            protogenSequenceId = kv.getValue().asIntegerValue().getInt();
+          } else if(key.equals("_h")) {
+            protogenShotId = kv.getValue().asIntegerValue().getInt();
+          } else {
+            System.err.println("Protogen: unkown field in a received error message from the server: " + key);
+          }
+        }
+      } catch (UnsupportedEncodingException e) {
+        throw new RuntimeException(e);
+      }
+    }
+
+    public HashMap<String,Object> toHash() {
+      HashMap<String,Object> hm = new HashMap<String,Object>();
+      try {
+        hm.put("info", _info.getBytes("UTF-8"));
+        hm.put("_s", protogenSequenceId);
+        hm.put("_h", protogenShotId);
+      } catch (UnsupportedEncodingException e) {
+        throw new RuntimeException(e);
+      }
+      return hm;
+    }
+
+    public ServerError(String info) {
+      this();
+      _info = info;
+    }
+
+    public String getInfoMessage() {
+      return _info;
+    }
+
+    public void setInfoMessage(String info) {
+      _info = info;
+    }
+
+    public boolean hasCookie(int cookieId) {
+      return false;
+    }
+
+  }
+
+}

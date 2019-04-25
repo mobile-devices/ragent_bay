@@ -1,0 +1,109 @@
+{
+  "name":"MyProtocol",
+  "protogen_version": 1,
+  "protocol_version": 1,
+  "generic_error_callback": "errorCallback",
+  "package":"com.test.example",
+  "messages":{
+    "QuestionToDevice":{
+      "_way":"toDevice",
+      "query":{"type":"string","modifier":"required"}
+    },
+    "AnswerToDevice":{
+      "_way":"toDevice",
+      "content":{"type":"string","modifier":"required"}
+    },
+    "QuestionToServer":{
+      "_way":"toServer",
+      "query":{"type":"string","modifier":"required"}
+    },
+    "AnswerToServer":{
+      "_way":"toServer",
+      "content":{"type":"string","modifier":"required"}
+    },
+    "Complex": {
+    "_way":"toDevice",
+    "content":{"type":"QuestionToServer","modifier":"required"}
+    }
+  },
+  "sequences":{
+    "AskToDevice": {
+      "aborted_callback":"aborted",
+      "first_shot":"FirstShot",
+      "shots":{
+        "FirstShot":{
+          "way":"toDevice",
+          "message_type":"QuestionToDevice",
+          "received_callback":"questionFromServerCallback",
+          "next_shots":["ImmediateAnswer", "MoreInformationNeeded"]
+        },
+        "ImmediateAnswer": {
+          "way":"toServer",
+          "message_type":"AnswerToServer",
+          "received_callback":"immediate_answer_from_device",
+          "server_error_callback":"serverErrorCallback",
+          "timeouts": {
+            "send":42
+          }
+        },
+        "MoreInformationNeeded": {
+          "way":"toServer",
+          "message_type":"QuestionToServer",
+          "received_callback":"more_information_needed",
+          "next_shots":["ServerResponse"],
+          "server_error_callback":"serverErrorCallback2",
+          "timeouts": {
+            "send":44,
+            "receive":1
+          },
+          "retryPolicy": {
+            "delay": 5, "attempts": 3
+          }
+        },
+        "ServerResponse": {
+          "way":"toDevice",
+          "message_type":"AnswerToDevice",
+          "received_callback":"moreInformationFromServer",
+          "next_shots":["FinalResponse"]
+        },
+        "FinalResponse": {
+          "way":"toServer",
+          "message_type":"AnswerToServer",
+          "received_callback":"final_device_answer"
+        }
+      }
+    },
+    "SimpleQuestionToServer":{
+      "first_shot":"FirstShot",
+      "shots":{
+        "FirstShot": {
+          "way":"toServer",
+          "message_type":"QuestionToServer",
+          "received_callback":"question_from_device",
+          "next_shots":["DirectAnswer"],
+          "timeouts": {
+            "receive": 1
+          },
+          "response_timeout_callback": "timeouted",
+          "server_error_callback": "errored",
+          "retryPolicy": {
+            "delay": 5, "attempts": 3
+          }
+        },
+        "DirectAnswer": {
+          "way":"toDevice",
+          "message_type":"AnswerToDevice",
+          "received_callback":"answerFromServer"
+        }
+      }
+    }
+  },
+  "cookies":{
+    "Cart": {
+      "_secure":"low",
+      "_send_with":["QuestionToServer"],
+      "lastitem": {"type":"int", "modifier":"required"},
+      "purchased":   {"type":"bool", "modifier":"required"}
+    }}
+
+}

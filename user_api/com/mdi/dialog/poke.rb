@@ -120,8 +120,7 @@ module UserApis
             'received_at' => self.received_at.to_i,
             'sender' => self.sender,
             'namespace' => self.namespace,
-            'content' => self.content,
-            'sender' => self.sender
+            'payload' => self.content
           }
 
           r_hash['meta'].delete_if { |k, v| v.nil? }
@@ -144,10 +143,9 @@ module UserApis
             'created_at' => self.created_at.to_i,
             'updated_at' => self.updated_at == nil ? Time.now.to_i : self.updated_at.to_i,
             'received_at' => self.received_at == nil ? Time.now.to_i : self.received_at.to_i,
-            'sender' => self.sender,
+            'sender' => self.sender, # todo: add in model of db viewer (todo)
             'namespace' => self.namespace,
-            'content' => self.content,
-            'sender' => 'ragent' # todo: add in model of db viewer (todo)
+            'payload' => self.content
           }
 
           r_hash['meta'].delete_if { |k, v| v.nil? }

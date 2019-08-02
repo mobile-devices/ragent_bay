@@ -231,7 +231,7 @@ module UserApis
             'isMemberOfCollection' => self.meta['isMemberOfCollection']
           }
           r_hash['payload'] = {
-            'id' => CC.indigen_next_id(self.asset),
+            'id' => (self.id = CC.indigen_next_id(self.asset)),
             'sender' => 'ragent', # todo: add in model of db viewer (todo)
             'asset' => self.asset,
             'received_at' => Time.now.to_i,

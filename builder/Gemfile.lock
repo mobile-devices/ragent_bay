@@ -9,7 +9,7 @@ GEM
       tzinfo (~> 1.1)
     chronic (0.10.2)
     i18n (0.7.0)
-    json (1.8.2)
+    json (1.8.6)
     minitest (5.3.5)
     thread_safe (0.3.4)
     tzinfo (1.2.2)
@@ -23,7 +23,7 @@ PLATFORMS
 
 DEPENDENCIES
   activesupport (~> 4.1.2)
-  json (~> 1.8.2)
+  json (~> 1.8.6)
   minitest (~> 5.3.5)
   tzinfo (~> 1.2.1)
   whenever (~> 0.8.2)
